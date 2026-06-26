@@ -1,1 +1,6 @@
 .DS_Store
+
+# OpenRouter klíč a pracovní cache generátoru (nikdy do repa)
+.openrouter-key
+.llm-cache.json
+.pool-cache.json
