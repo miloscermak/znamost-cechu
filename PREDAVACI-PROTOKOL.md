@@ -206,14 +206,14 @@ V seedu fungují takto:
 
 ---
 
-## 11. Statický publikační web (`index.html` + `data.json`)
+## 11. Statický publikační web (`public/index.html` + `public/data.json`)
 
 Prezentační web pro **veřejnou publikaci** — už **nevolá žádné AI**, jen zobrazuje předpočítaná
-čísla pro top 200. Skládá se ze dvou souborů:
+čísla pro top 200. Leží ve složce `public/`, kterou publikuje Netlify (viz `netlify.toml`).
 
-- `index.html` — čistě prezentační (žádný API klíč, slidery ani měření). Vizuál převzatý z
-  `top500llm.html`. Při startu načte `data.json` přes `fetch`.
-- `data.json` — vyexportovaná data (struktura níže).
+- `public/index.html` — čistě prezentační (žádný API klíč, slidery ani měření). Vizuál převzatý
+  z `top500llm.html`. Při startu načte `data.json` přes `fetch`.
+- `public/data.json` — předpočítaná data (struktura níže).
 
 ### Hlavní úhel webu: rozdíl wiki↔AI
 
@@ -223,10 +223,20 @@ datové pořadí napovídá. Sloupec „Rozdíl" + dvě highlight karty s extré
 
 ### Workflow přepočtu (děláme jen my, před publikací)
 
-1. Otevřít `top500llm.html` lokálně v Chrome (ne v náhledu) → **Sestavit žebříček**.
-2. Zadat OpenRouter klíč, nastavit **Měřit top 200**, **Změřit LLM znalost** (placené, pár minut).
-3. Klik **„Export JSON pro web"** → stáhne se `data.json`.
-4. Nahradit `data.json` ve složce webu → commit → publikovat.
+Dvě cesty, obě dávají stejný `data.json`:
+
+**A) CLI generátor `build-data.mjs` (doporučeno, Node 18+):**
+1. Klíč do gitignorovaného souboru: `read -s k && printf '%s' "$k" > .openrouter-key && unset k`
+2. `node build-data.mjs` → sestaví pool 500, změří top 200, zapíše `public/data.json`.
+3. `git add public/data.json && git commit && git push` → Netlify nasadí.
+
+Odolný proti pádu: rozměřené **celé odpovědi** modelů se ukládají do `.llm-cache.json`, pool do
+`.pool-cache.json`. Díky cachování odpovědí je **re-verifikace po úpravě `FIELDS` zdarma** (smaž
+jen `.pool-cache.json` pro čerstvá data, `.llm-cache.json` nech). Oba soubory + `.openrouter-key`
+jsou v `.gitignore` — nikdy se necommitují.
+
+**B) Ručně přes `top500llm.html`:** Sestavit žebříček → klíč → Měřit top 200 → tlačítko
+„Export JSON pro web" → uložit jako `public/data.json`.
 
 ### Struktura `data.json`
 
@@ -235,13 +245,16 @@ composite, parts:{g,dur,l}, llm:{coef,models:[{model,tier,recog,available}]} | n
 
 - `parts` = vážené části os (gPart/durPart/lPart) pro mix-bar; web si dopočítá maximum sám.
 - `llm: null` = člověk zatím nezměřen (web zobrazí „—", nezahrne do extrémů).
-- **Lokální náhled:** přes `file://` prohlížeč blokuje fetch → spustit `python3 -m http.server`
-  ve složce a otevřít `http://localhost:8000/index.html`. Po nahrání na hosting funguje rovnou.
+- **Lokální náhled:** přes `file://` prohlížeč blokuje fetch → `cd public && python3 -m http.server`
+  a otevřít `http://localhost:8000/index.html`. Po nahrání na hosting funguje rovnou.
 
-### Export JSON v `top500llm.html`
+### Poznámky k verifikaci (lekce z prvního ostrého běhu)
 
-Funkce `exportJSON()` + tlačítko „Export JSON pro web" v `.resbar`. Reuse `DATA._ranked` a
-`p.llm.models`; exportuje top 200 podle pořadí. Žádná nová výpočetní logika.
+- **Jméno z label service:** `wikibase:label` vrací QID, když entita nemá cs/en popisek — pak se
+  NESMÍ přepsat jméno z článku (jinak jde do modelu dotaz „kdo je Q…"). Ošetřeno v obou nástrojích.
+- **`FIELDS` musí pokrýt obory, které modely reálně vrací**, jinak vznikají false negatives
+  (modelka, šachista, judista, rychlobruslař, horolezec, tanečník, biskup… → dřív padaly na 0).
+  Rozšířeno; přidány obory `moda` a `nabozenstvi`. Pořád ne dokonalé (povaha `P106`).
 
 ---
 
@@ -250,8 +263,10 @@ Funkce `exportJSON()` + tlačítko „Export JSON pro web" v `.resbar`. Reuse `D
 - `ve-vahach-seed.html` — žebříček z dat, obory jako filtr.
 - `wikifight.html` — souboj podle dat (absolutní skóre).
 - `llmfight.html` — souboj podle znalosti modely.
-- `top500llm.html` — žebříček z dat + LLM koeficient (finální měřící nástroj) + export JSON pro web.
-- `index.html` — **veřejný statický web** (data vs. AI, top 200), nevolá AI.
-- `data.json` — předpočítaná data pro web (zatím ukázková, nahradit reálným exportem).
+- `top500llm.html` — žebříček z dat + LLM koeficient (měřící nástroj) + export JSON pro web.
+- `build-data.mjs` — CLI generátor `public/data.json` (Node, bez závislostí, odolný proti pádu).
+- `public/index.html` — **veřejný statický web** (data vs. AI, top 200), nevolá AI.
+- `public/data.json` — předpočítaná data pro web.
+- `netlify.toml` — publish = `public/`.
 - `CLAUDE.md` — orientační přehled.
 - `PREDAVACI-PROTOKOL.md` — tento dokument.

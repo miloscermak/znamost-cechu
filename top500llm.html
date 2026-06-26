@@ -208,14 +208,19 @@ const CAP=2;   // strop LLM koeficientu, když nezná žádný frontier
 /* obory pro auto-verifikaci profese (dvojjazyčně) */
 const FIELDS={
   politika:["politik","politič","ministr","preziden","senátor","poslan","diplomat","guvernér","politician","minister","president","senator","diplomat","governor","statesman"],
-  sport:["sport","fotbal","hokej","tenis","atlet","lyžař","závodník","trenér","football","soccer","hockey","tennis","athlete","ski","player","coach","olympic","cyclist","boxer"],
-  hudba:["hudb","zpěv","skladatel","kytar","klavír","dirigent","raper","music","singer","composer","guitar","pianist","rapper","conductor","songwriter","violinist"],
-  film:["herec","hereč","režisér","moderátor","komik","bavič","film","televiz","divadel","actor","actress","director","filmmaker","presenter","comedian","screenwriter","producer","theatre"],
-  veda:["věd","fyzik","chemik","biolog","matematik","historik","filozof","ekonom","lékař","profesor","sociolog","psycholog","právník","scien","physic","chemist","biolog","mathematic","historian","philosoph","econom","professor","researcher","academic","physician","lawyer"],
+  sport:["sport","fotbal","hokej","tenis","atlet","lyžař","závodník","trenér","football","soccer","hockey","tennis","athlete","ski","player","coach","olympic","cyclist","boxer",
+    "šach","chess","judo","judist","judoka","zápas","wrestl","snowboard","brusl","skater","skating","rychlobrusl","kanoist","canoe","kayak","veslař","rower","horolez","mountaineer","climb","lezec","biatlon","biathlon","gymnast","plav","swimmer","běžec","runner","oštěp","javelin","disk","discus","skok","jump","střelec","shooter","kulturist","motocykl","racer","pilot","jezdec","rider"],
+  hudba:["hudb","zpěv","skladatel","kytar","klavír","dirigent","raper","music","singer","composer","guitar","pianist","rapper","conductor","songwriter","violinist","cellist","houslist","kontrabas","double-bass","jazz","opern","opera"],
+  film:["herec","hereč","režisér","moderátor","komik","bavič","film","televiz","divadel","actor","actress","director","filmmaker","presenter","comedian","screenwriter","producer","theatre",
+    "taneč","tanec","balet","choreograf","dancer","ballet","choreographer"],
+  veda:["věd","fyzik","chemik","biolog","matematik","historik","filozof","ekonom","lékař","profesor","sociolog","psycholog","právník","scien","physic","chemist","biolog","mathematic","historian","philosoph","econom","professor","researcher","academic","physician","lawyer",
+    "archeolog","archaeolog","egyptolog","egyptolog","antropolog","anthropolog","astronom","geolog","genetik","genetic","neurolog","lingvist","linguist","botanik","zoolog","paleontolog","epigraf","epigraph","teolog","theolog"],
   literatura:["spisovatel","básník","prozaik","dramatik","esejist","překladatel","writer","author","novelist","poet","playwright","essayist","translator"],
   zurnalistika:["novinář","publicist","redaktor","reportér","komentátor","journalist","reporter","columnist","editor","blogger","youtuber","podcaster"],
   byznys:["podnikatel","manažer","ředitel","investor","entrepreneur","businessman","businessperson","manager","ceo","investor","founder"],
   umeni:["malíř","sochař","výtvarník","fotograf","architekt","designér","painter","sculptor","architect","photographer","designer","artist","illustrator"],
+  moda:["model","modelka","modeling","fashion model","supermodel","topmodel","miss","beauty pageant","kráska"],
+  nabozenstvi:["biskup","arcibiskup","kněz","farář","kardinál","bishop","archbishop","priest","cardinal","clergy","rabín","rabbi","duchovní","kazatel","preacher"],
 };
 function fieldsOf(t){ t=(t||"").toLowerCase(); const o=new Set(); for(const f in FIELDS){ for(const k of FIELDS[f]){ if(t.includes(k)){o.add(f);break;} } } return o; }
 
@@ -278,7 +283,7 @@ async function build(){
       const ch=[]; for(let i=0;i<people.length;i+=150) ch.push(people.slice(i,i+150)); let c=0;
       for(const g of ch){ const bind=await sparql(decorateQuery(g.map(p=>p.qid)));
         bind.forEach(b=>{ const p=m[b.person.value.split("/").pop()]; if(!p)return;
-          if(b.personLabel?.value) p.name=b.personLabel.value; p.desc=b.personDescription?.value||"";
+          if(b.personLabel?.value && !/^Q\d+$/.test(b.personLabel.value)) p.name=b.personLabel.value; p.desc=b.personDescription?.value||"";
           p.occ=[(b.occsEn?.value||""),(b.occsCs?.value||"")].join(" | "); });
         c++; pm(1,"Stahuji jména a profese… "+c+"/"+ch.length,14+c/ch.length*4); }
     }catch(e){}

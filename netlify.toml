@@ -1,0 +1,6 @@
+# Netlify — publikuje se jen statický web ze složky public/.
+# Interní měřící nástroje (top500llm.html, llmfight.html…) a generátor zůstávají
+# v repu, ale na veřejnou doménu se nedostanou (nejsou v publish adresáři).
+[build]
+  publish = "public"
+  command = ""

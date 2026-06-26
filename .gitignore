@@ -4,3 +4,4 @@
 .openrouter-key
 .llm-cache.json
 .pool-cache.json
+.build.log

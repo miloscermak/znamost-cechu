@@ -10,11 +10,13 @@ Sada samostatných HTML nástrojů, které měří **známost osobností** dvěm
 | `wikifight.html` | Souboj 2 osobností podle dat (i mezinárodní) | absolutní skóre 0–1000 | hotovo |
 | `llmfight.html` | Souboj 2 osobností podle znalosti modely | LLM koeficient 0–10 | hotovo |
 | `top500llm.html` | Žebříček z dat (bez kategorií) + doplnění LLM koeficientu + export JSON | obojí: 0–1000 a 0–10 | hotovo |
-| `index.html` + `data.json` | **Veřejný statický web** — top 200, nevolá AI, jen zobrazuje předpočítaná data; hlavní úhel = rozdíl wiki↔AI | obojí + rozdíl | hotovo |
+| `build-data.mjs` | CLI generátor `public/data.json` (Node, bez závislostí, odolný proti pádu) | obojí | hotovo |
+| `public/index.html` + `public/data.json` | **Veřejný statický web** — top 200, nevolá AI, jen zobrazuje předpočítaná data; hlavní úhel = rozdíl wiki↔AI | obojí + rozdíl | hotovo |
 
-`top500llm.html` je finální **měřící** nástroj (spojuje žebříček a LLM měření). `index.html` je
-**publikační** web: data se přepočítají jednou před publikací (`top500llm.html` → Export JSON →
-`data.json`), web sám už nic neměří. Detaily a workflow přepočtu v `PREDAVACI-PROTOKOL.md` (sekce 11).
+`top500llm.html` je finální **měřící** nástroj (spojuje žebříček a LLM měření). Web ve `public/` je
+**publikační**: data se přepočítají jednou před publikací (`build-data.mjs`, nebo ručně export
+z `top500llm.html`), web sám už nic neměří. Nasazení přes Netlify (publish = `public/`). Detaily
+a workflow přepočtu v `PREDAVACI-PROTOKOL.md` (sekce 11).
 
 ## Jak spustit
 

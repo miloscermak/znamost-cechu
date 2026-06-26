@@ -48,14 +48,19 @@ const CACHE_POOL = ".pool-cache.json";
 
 const FIELDS = {
   politika:["politik","politič","ministr","preziden","senátor","poslan","diplomat","guvernér","politician","minister","president","senator","diplomat","governor","statesman"],
-  sport:["sport","fotbal","hokej","tenis","atlet","lyžař","závodník","trenér","football","soccer","hockey","tennis","athlete","ski","player","coach","olympic","cyclist","boxer"],
-  hudba:["hudb","zpěv","skladatel","kytar","klavír","dirigent","raper","music","singer","composer","guitar","pianist","rapper","conductor","songwriter","violinist"],
-  film:["herec","hereč","režisér","moderátor","komik","bavič","film","televiz","divadel","actor","actress","director","filmmaker","presenter","comedian","screenwriter","producer","theatre"],
-  veda:["věd","fyzik","chemik","biolog","matematik","historik","filozof","ekonom","lékař","profesor","sociolog","psycholog","právník","scien","physic","chemist","biolog","mathematic","historian","philosoph","econom","professor","researcher","academic","physician","lawyer"],
+  sport:["sport","fotbal","hokej","tenis","atlet","lyžař","závodník","trenér","football","soccer","hockey","tennis","athlete","ski","player","coach","olympic","cyclist","boxer",
+    "šach","chess","judo","judist","judoka","zápas","wrestl","snowboard","brusl","skater","skating","rychlobrusl","kanoist","canoe","kayak","veslař","rower","horolez","mountaineer","climb","lezec","biatlon","biathlon","gymnast","plav","swimmer","běžec","runner","oštěp","javelin","disk","discus","skok","jump","střelec","shooter","kulturist","motocykl","racer","pilot","jezdec","rider"],
+  hudba:["hudb","zpěv","skladatel","kytar","klavír","dirigent","raper","music","singer","composer","guitar","pianist","rapper","conductor","songwriter","violinist","cellist","houslist","kontrabas","double-bass","jazz","opern","opera"],
+  film:["herec","hereč","režisér","moderátor","komik","bavič","film","televiz","divadel","actor","actress","director","filmmaker","presenter","comedian","screenwriter","producer","theatre",
+    "taneč","tanec","balet","choreograf","dancer","ballet","choreographer"],
+  veda:["věd","fyzik","chemik","biolog","matematik","historik","filozof","ekonom","lékař","profesor","sociolog","psycholog","právník","scien","physic","chemist","biolog","mathematic","historian","philosoph","econom","professor","researcher","academic","physician","lawyer",
+    "archeolog","archaeolog","egyptolog","egyptolog","antropolog","anthropolog","astronom","geolog","genetik","genetic","neurolog","lingvist","linguist","botanik","zoolog","paleontolog","epigraf","epigraph","teolog","theolog"],
   literatura:["spisovatel","básník","prozaik","dramatik","esejist","překladatel","writer","author","novelist","poet","playwright","essayist","translator"],
   zurnalistika:["novinář","publicist","redaktor","reportér","komentátor","journalist","reporter","columnist","editor","blogger","youtuber","podcaster"],
   byznys:["podnikatel","manažer","ředitel","investor","entrepreneur","businessman","businessperson","manager","ceo","investor","founder"],
   umeni:["malíř","sochař","výtvarník","fotograf","architekt","designér","painter","sculptor","architect","photographer","designer","artist","illustrator"],
+  moda:["model","modelka","modeling","fashion model","supermodel","topmodel","miss","beauty pageant","kráska"],
+  nabozenstvi:["biskup","arcibiskup","kněz","farář","kardinál","bishop","archbishop","priest","cardinal","clergy","rabín","rabbi","duchovní","kazatel","preacher"],
 };
 function fieldsOf(t) { t = (t || "").toLowerCase(); const o = new Set();
   for (const f in FIELDS) for (const k of FIELDS[f]) if (t.includes(k)) { o.add(f); break; }
@@ -178,12 +183,18 @@ function verify(text, p) {
   return pm ? (nm ? 2 : 1) : 0;
 }
 async function scoreLLM(p, cache) {
+  // Cache ukládá celou odpověď modelu (ne jen recog) — díky tomu je re-verifikace
+  // po úpravě FIELDS zdarma; stačí přegenerovat bez nového volání modelů.
   const prompt = buildPrompt(p);
   const res = await Promise.all(PANEL.map(async m => {
     const ck = p.qid + "|" + m.model;
-    if (cache[ck] !== undefined) return { ...m, recog: cache[ck], available: true };
-    try { const t = await askModel(m.model, prompt); const rc = verify(t, p); cache[ck] = rc; return { ...m, recog: rc, available: true }; }
-    catch { return { ...m, recog: 0, available: false }; }
+    let text;
+    if (typeof cache[ck] === "string") text = cache[ck];
+    else {
+      try { text = await askModel(m.model, prompt); cache[ck] = text; }
+      catch { return { ...m, recog: 0, available: false }; }
+    }
+    return { ...m, recog: verify(text, p), available: true };
   }));
   const av = res.filter(r => r.available); let num = 0, den = 0;
   for (const r of av) { const w = TIER_W[r.tier] || 1; num += w * (r.recog / 2); den += w; }
@@ -214,7 +225,8 @@ async function buildPool() {
     try {
       const bind = await sparql(decorateQuery(g.map(p => p.qid)));
       bind.forEach(b => { const p = m[b.person.value.split("/").pop()]; if (!p) return;
-        if (b.personLabel?.value) p.name = b.personLabel.value;
+        // label service vrací QID, když entita nemá cs/en popisek — pak nech jméno z článku
+        if (b.personLabel?.value && !/^Q\d+$/.test(b.personLabel.value)) p.name = b.personLabel.value;
         p.desc = b.personDescription?.value || "";
         p.occ = [(b.occsEn?.value || ""), (b.occsCs?.value || "")].join(" | "); });
     } catch (e) { console.log("  (dekorace dávky selhala, pokračuji)"); }
@@ -261,7 +273,8 @@ async function main() {
       llm: p.llm ? { coef: p.llm.coef, models: p.llm.models } : null,
     })),
   };
-  fs.writeFileSync("data.json", JSON.stringify(out, null, 2));
+  fs.mkdirSync("public", { recursive: true });
+  fs.writeFileSync("public/data.json", JSON.stringify(out, null, 2));
   const measured = out.people.filter(p => p.llm).length;
   console.log(`\nHotovo. Zapsáno data.json — ${out.count} osob, LLM změřeno ${measured}.`);
 }
