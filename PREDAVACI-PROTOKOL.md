@@ -206,11 +206,52 @@ V seedu fungují takto:
 
 ---
 
-## 11. Inventář souborů
+## 11. Statický publikační web (`index.html` + `data.json`)
+
+Prezentační web pro **veřejnou publikaci** — už **nevolá žádné AI**, jen zobrazuje předpočítaná
+čísla pro top 200. Skládá se ze dvou souborů:
+
+- `index.html` — čistě prezentační (žádný API klíč, slidery ani měření). Vizuál převzatý z
+  `top500llm.html`. Při startu načte `data.json` přes `fetch`.
+- `data.json` — vyexportovaná data (struktura níže).
+
+### Hlavní úhel webu: rozdíl wiki↔AI
+
+Wiki-skóre se převede na srovnatelnou škálu `wikiNorm = composite / 100` (0–10) a počítá se
+`gap = wikiNorm − llmCoef`. **Kladný** = zná Wikipedie, ne AI; **záporný** = AI zná víc, než
+datové pořadí napovídá. Sloupec „Rozdíl" + dvě highlight karty s extrémy.
+
+### Workflow přepočtu (děláme jen my, před publikací)
+
+1. Otevřít `top500llm.html` lokálně v Chrome (ne v náhledu) → **Sestavit žebříček**.
+2. Zadat OpenRouter klíč, nastavit **Měřit top 200**, **Změřit LLM znalost** (placené, pár minut).
+3. Klik **„Export JSON pro web"** → stáhne se `data.json`.
+4. Nahradit `data.json` ve složce webu → commit → publikovat.
+
+### Struktura `data.json`
+
+`{ generated, count, panel:[{model,tier}], people:[{rank,name,qid,birth,desc,title,sitelinks,
+composite, parts:{g,dur,l}, llm:{coef,models:[{model,tier,recog,available}]} | null }] }`
+
+- `parts` = vážené části os (gPart/durPart/lPart) pro mix-bar; web si dopočítá maximum sám.
+- `llm: null` = člověk zatím nezměřen (web zobrazí „—", nezahrne do extrémů).
+- **Lokální náhled:** přes `file://` prohlížeč blokuje fetch → spustit `python3 -m http.server`
+  ve složce a otevřít `http://localhost:8000/index.html`. Po nahrání na hosting funguje rovnou.
+
+### Export JSON v `top500llm.html`
+
+Funkce `exportJSON()` + tlačítko „Export JSON pro web" v `.resbar`. Reuse `DATA._ranked` a
+`p.llm.models`; exportuje top 200 podle pořadí. Žádná nová výpočetní logika.
+
+---
+
+## 12. Inventář souborů
 
 - `ve-vahach-seed.html` — žebříček z dat, obory jako filtr.
 - `wikifight.html` — souboj podle dat (absolutní skóre).
 - `llmfight.html` — souboj podle znalosti modely.
-- `top500llm.html` — žebříček z dat + LLM koeficient (finální nástroj).
+- `top500llm.html` — žebříček z dat + LLM koeficient (finální měřící nástroj) + export JSON pro web.
+- `index.html` — **veřejný statický web** (data vs. AI, top 200), nevolá AI.
+- `data.json` — předpočítaná data pro web (zatím ukázková, nahradit reálným exportem).
 - `CLAUDE.md` — orientační přehled.
 - `PREDAVACI-PROTOKOL.md` — tento dokument.

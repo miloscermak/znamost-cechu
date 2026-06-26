@@ -174,6 +174,7 @@
     <div class="resbar">
       <div class="count">Žebříček <b id="totalCount">0</b> osobností · LLM změřeno <b id="llmCount">0</b></div>
       <input class="search" id="search" placeholder="Hledat jméno…">
+      <button class="ghost" id="json" disabled>Export JSON pro web</button>
       <button class="ghost" id="csv" disabled>Stáhnout CSV</button>
     </div>
     <div class="tablewrap">
@@ -287,7 +288,7 @@ async function build(){
       (d,n)=>{ const el=(Date.now()-t0)/1000, eta=d?Math.round(el/d*(n-d)):0; pm(1,`Stahuji čtenost… ${d} / ${n} · ~${eta}s`,18+d/n*78); },12);
     DATA=people; recompute(); pm(1,"Hotovo.",100); setTimeout(()=>hideP(1),600);
     buildHead(); render();
-    $("#results").style.display="block"; $("#csv").disabled=false;
+    $("#results").style.display="block"; $("#csv").disabled=false; $("#json").disabled=false;
     $("#llmPanel").style.opacity="1"; $("#llmPanel").style.pointerEvents="auto"; refreshCost();
   }catch(err){ errP(1,String(err.message||err)); }
   finally{ $("#build").disabled=false; $("#build").textContent="Sestavit žebříček"; }
@@ -438,6 +439,7 @@ $("#build").onclick=build;
 $("#measure").onclick=measure;
 $("#search").oninput=e=>{ q=e.target.value.trim().toLowerCase(); render(); };
 $("#csv").onclick=exportCSV;
+$("#json").onclick=exportJSON;
 
 function exportCSV(){
   const head=["poradi","jmeno","qid","rok","sitelinks","autoritni_id","tvrzeni","ctenost_median","kompozit_data","llm_0_10"]
@@ -447,6 +449,25 @@ function exportCSV(){
   const csv=[head,...rows].map(r=>r.map(c=>{ const s=String(c??""); return /[",\n;]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s; }).join(",")).join("\n");
   const b=new Blob(["\uFEFF"+csv],{type:"text/csv;charset=utf-8"}); const a=document.createElement("a");
   a.href=URL.createObjectURL(b); a.download="top500-znamost-"+DATA._ranked.length+".csv"; a.click(); URL.revokeObjectURL(a.href);
+}
+
+/* Export data.json pro statický web — top 200 podle pořadí, struktura kterou čte index.html */
+function exportJSON(){
+  const d=new Date();
+  const generated=d.getUTCFullYear()+"-"+String(d.getUTCMonth()+1).padStart(2,"0")+"-"+String(d.getUTCDate()).padStart(2,"0");
+  const top=DATA._ranked.slice(0,200);
+  const people=top.map(p=>({
+    rank:p.rank, name:p.name, qid:p.qid, birth:p.birth, desc:p.desc||"", title:p.title,
+    sitelinks:p.sitelinks, composite:p.composite,
+    parts:{ g:+p.gPart.toFixed(4), dur:+p.durPart.toFixed(4), l:+p.lPart.toFixed(4) },
+    llm: p.llm ? {
+      coef:p.llm.coef,
+      models:p.llm.models.map(m=>({model:m.model, tier:m.tier, recog:m.recog, available:m.available}))
+    } : null
+  }));
+  const out={ generated, count:people.length, panel:PANEL.map(m=>({model:m.model,tier:m.tier})), people };
+  const b=new Blob([JSON.stringify(out,null,2)],{type:"application/json;charset=utf-8"}); const a=document.createElement("a");
+  a.href=URL.createObjectURL(b); a.download="data.json"; a.click(); URL.revokeObjectURL(a.href);
 }
 
 function showP(n){ $("#prog"+n).classList.add("show"); $("#pf"+n).style.width="0"; }

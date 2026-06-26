@@ -2,16 +2,19 @@
 
 Sada samostatných HTML nástrojů, které měří **známost osobností** dvěma nezávislými způsoby: z otevřených dat (Wikidata + Wikimedia) a ze znalosti jazykových modelů (panel přes OpenRouter). Každý nástroj je jeden soubor `.html` bez build-kroku a bez backendu — čistý HTML/CSS/vanilla JS, data se tahají živě z veřejných API přímo v prohlížeči.
 
-## Aplikace (4 soubory)
+## Aplikace
 
 | Soubor | Co dělá | Metrika | Stav |
 |---|---|---|---|
 | `ve-vahach-seed.html` | Žebříček ~500 žijících Čechů z Wikidat; obory jako filtr | datový koeficient 0–1000 | hotovo |
 | `wikifight.html` | Souboj 2 osobností podle dat (i mezinárodní) | absolutní skóre 0–1000 | hotovo |
 | `llmfight.html` | Souboj 2 osobností podle znalosti modely | LLM koeficient 0–10 | hotovo |
-| `top500llm.html` | Žebříček z dat (bez kategorií) + doplnění LLM koeficientu | obojí: 0–1000 a 0–10 | hotovo |
+| `top500llm.html` | Žebříček z dat (bez kategorií) + doplnění LLM koeficientu + export JSON | obojí: 0–1000 a 0–10 | hotovo |
+| `index.html` + `data.json` | **Veřejný statický web** — top 200, nevolá AI, jen zobrazuje předpočítaná data; hlavní úhel = rozdíl wiki↔AI | obojí + rozdíl | hotovo |
 
-`top500llm.html` je finální nástroj, který spojuje žebříček a LLM měření.
+`top500llm.html` je finální **měřící** nástroj (spojuje žebříček a LLM měření). `index.html` je
+**publikační** web: data se přepočítají jednou před publikací (`top500llm.html` → Export JSON →
+`data.json`), web sám už nic neměří. Detaily a workflow přepočtu v `PREDAVACI-PROTOKOL.md` (sekce 11).
 
 ## Jak spustit
 

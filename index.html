@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Známost Čechů — data vs. AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F4F5F7; --panel:#FFFFFF; --ink:#14171C; --muted:#6C7480; --faint:#9AA1AC;
+    --line:#E4E7EC; --line2:#EEF0F3;
+    --global:#4338CA; --durable:#0E8C7A; --domestic:#DB6D28;
+    --c-top:#3B49DF; --c-mid:#1F9E54; --c-small:#D14848;   /* kolečka: velké/střední/malé */
+    --bad:#C0392B;
+    --r:10px;
+    --disp:"Space Grotesk",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    --mono:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,monospace;
+  }
+  *{box-sizing:border-box} html,body{margin:0}
+  body{background:var(--bg); color:var(--ink); font-family:var(--disp); font-size:15px; line-height:1.5; -webkit-font-smoothing:antialiased}
+  .wrap{max-width:1140px; margin:0 auto; padding:28px 22px 80px}
+  a{color:var(--global); text-decoration:none} a:hover{text-decoration:underline}
+
+  header{margin-bottom:18px}
+  .eyebrow{font-family:var(--mono); font-size:11.5px; letter-spacing:.16em; text-transform:uppercase; color:var(--muted); display:flex; gap:10px; align-items:center}
+  .eyebrow .dot{width:6px;height:6px;border-radius:50%; background:linear-gradient(90deg,var(--global),var(--c-small))}
+  h1{font-size:clamp(28px,4.4vw,44px); font-weight:700; letter-spacing:-.02em; margin:.26em 0 .12em; line-height:1.04}
+  h1 em{font-style:normal; background:linear-gradient(90deg,var(--global),var(--durable),var(--domestic)); -webkit-background-clip:text; background-clip:text; color:transparent}
+  .lede{max-width:66ch; color:#3A4049}
+
+  /* methodology */
+  .method{display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:20px}
+  .mbox{background:var(--panel); border:1px solid var(--line); border-radius:var(--r); padding:16px 18px}
+  .mbox h2{font-size:12px; font-family:var(--mono); letter-spacing:.1em; text-transform:uppercase; margin:0 0 9px; display:flex; align-items:center; gap:8px}
+  .mbox.wiki h2{color:var(--global)} .mbox.llm h2{color:var(--c-mid)}
+  .mbox p{margin:0; font-size:13px; color:#3A4049; line-height:1.55}
+
+  /* highlight cards — rozdíl wiki vs AI */
+  .gaps{display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:14px}
+  .gapcard{background:var(--panel); border:1px solid var(--line); border-radius:var(--r); padding:16px 18px}
+  .gapcard .lbl{font-family:var(--mono); font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin-bottom:10px; display:flex; align-items:center; gap:7px}
+  .gapcard.pos .lbl{color:var(--global)} .gapcard.neg .lbl{color:var(--c-mid)}
+  .gapcard .badge{width:8px;height:8px;border-radius:50%} .gapcard.pos .badge{background:var(--global)} .gapcard.neg .badge{background:var(--c-mid)}
+  .gapcard ol{margin:0; padding:0; list-style:none; display:flex; flex-direction:column; gap:7px}
+  .gapcard li{display:flex; align-items:baseline; justify-content:space-between; gap:10px; font-size:14px}
+  .gapcard li .nm{font-weight:500} .gapcard li .nm .yr{font-family:var(--mono); font-size:11px; color:var(--faint); margin-left:6px}
+  .gapcard li .vals{font-family:var(--mono); font-size:12px; color:var(--muted); white-space:nowrap}
+  .gapcard li .vals b{color:var(--ink)}
+
+  /* models footer */
+  .models{margin-top:14px; background:var(--panel); border:1px solid var(--line); border-radius:var(--r); padding:14px 18px; font-size:12.5px; color:var(--muted)}
+  .models b{color:var(--ink); font-weight:600}
+  .models .grp{display:inline-flex; align-items:center; gap:6px; margin:3px 12px 3px 0}
+  .models .dotc{width:10px;height:10px;border-radius:50%;display:inline-block}
+  .models .dotc.t1{background:var(--c-top)} .models .dotc.t2{background:var(--c-mid)} .models .dotc.t3{background:var(--c-small)}
+  .models code{font-family:var(--mono); font-size:11.5px; color:#3A4049}
+  .stamp{margin-top:8px; font-size:11.5px; color:var(--faint)}
+
+  /* table */
+  .resbar{display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin:28px 0 12px}
+  .resbar .count{font-family:var(--mono); font-size:13px; color:var(--muted)} .resbar .count b{color:var(--ink)}
+  .search{flex:1; min-width:160px; max-width:260px; font-family:var(--disp); font-size:14px; padding:9px 12px; border:1px solid var(--line); border-radius:8px; background:var(--panel)}
+  .tablewrap{background:var(--panel); border:1px solid var(--line); border-radius:var(--r); overflow:hidden}
+  table{width:100%; border-collapse:collapse}
+  th,td{text-align:left; padding:10px 14px; border-bottom:1px solid var(--line2); vertical-align:middle}
+  th{font-family:var(--mono); font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); font-weight:600; cursor:pointer; white-space:nowrap; background:var(--panel); position:sticky; top:0; z-index:1}
+  th .arr{opacity:.5; font-size:10px}
+  tr:last-child td{border-bottom:0} tbody tr:hover{background:#FAFBFC}
+  td.rank{font-family:var(--mono); color:var(--faint); font-size:13px; width:44px}
+  td.name{font-weight:500} td.name .yr{font-family:var(--mono); font-size:11.5px; color:var(--faint); margin-left:7px; font-weight:400}
+  td.name .desc{display:block; font-size:12px; color:var(--muted); font-weight:400; margin-top:1px; max-width:36ch; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  td.wiki{width:210px}
+  .scorerow{display:flex; align-items:center; gap:9px}
+  .scoreval{font-family:var(--mono); font-size:13px; font-weight:600; width:38px; text-align:right; color:var(--ink)}
+  .mix{flex:1; height:9px; border-radius:5px; background:var(--line2); overflow:hidden; display:flex}
+  .mix .g{background:var(--global)} .mix .u{background:var(--durable)} .mix .d{background:var(--domestic)}
+  td.llm{width:200px}
+  .llmrow{display:flex; align-items:center; gap:11px}
+  .llmval{font-family:var(--mono); font-size:15px; font-weight:600; width:46px; flex:none}
+  .llmval .of{font-size:11px; color:var(--faint); font-weight:400}
+  .llmval.todo{color:var(--faint); font-weight:400; font-size:13px}
+  .circles{display:flex; gap:5px}
+  .circ{width:12px; height:12px; border-radius:50%; border:1.6px solid; background:transparent}
+  .circ.t1{border-color:var(--c-top)} .circ.t2{border-color:var(--c-mid)} .circ.t3{border-color:var(--c-small)}
+  .circ.t1.on{background:var(--c-top)} .circ.t2.on{background:var(--c-mid)} .circ.t3.on{background:var(--c-small)}
+  .circ.un{border-color:var(--line); border-style:dotted}
+  td.gap{width:96px}
+  .gapval{font-family:var(--mono); font-size:13px; font-weight:600; display:inline-flex; align-items:center; gap:5px}
+  .gapval.pos{color:var(--global)} .gapval.neg{color:var(--c-mid)} .gapval.zero{color:var(--faint)} .gapval.todo{color:var(--faint); font-weight:400}
+  .gapval .ar{font-size:10px}
+  .empty{padding:44px 20px; text-align:center; color:var(--muted)}
+  .loaderr{background:var(--panel); border:1px solid var(--line); border-radius:var(--r); padding:24px; color:var(--bad); font-size:14px; line-height:1.6}
+  .loaderr code{font-family:var(--mono); font-size:12.5px; background:var(--bg); padding:2px 6px; border-radius:5px; color:var(--ink)}
+  @media(max-width:760px){ .method,.gaps{grid-template-columns:1fr} td.name .desc{display:none} th.hide,td.hide{display:none} }
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow"><span class="dot"></span> Top 200 · žijící Češi</div>
+    <h1>Známost měřená <em>daty i modely</em></h1>
+    <p class="lede">Žebříček nejznámějších žijících Čechů sestavený z otevřených dat a seřazený podle datového koeficientu známosti. Ke každému je doplněn koeficient znalosti jazykovými modely — jak hluboko je jméno zakódované v jejich vahách. Nejzajímavější je <b>rozdíl</b> mezi oběma čísly: koho zná Wikipedie, ale ne AI, a naopak.</p>
+  </header>
+
+  <div class="method">
+    <div class="mbox wiki">
+      <h2>Koeficient z dat · 0–1000</h2>
+      <p>Doložená známost z otevřených zdrojů, bez AI. Tři osy: <b>globální</b> (počet jazykových verzí Wikipedie), <b>trvalá</b> (hustota institucionálních autoritních záznamů jako VIAF, GND či ORCID + počet tvrzení na Wikidatech) a <b>živá</b> (medián měsíční čtenosti české Wikipedie za 24 měsíců). Osy se logaritmují, převedou na percentil v žebříčku a sečtou vážením 20/50/30; nárazové špičky čtenosti se tlumí. Podle tohoto čísla je žebříček seřazený.</p>
+    </div>
+    <div class="mbox llm">
+      <h2>Koeficient z modelů · 0–10</h2>
+      <p>Jak hluboko je jméno zakódované ve vahách jazykových modelů. Každý ze sedmi modelů dostane bez přístupu k webu neutrální dotaz „kdo je [jméno] (nar. rok)?“ a odpověď se porovná s profesí a národností z Wikidat: 2 = sedí obojí, 1 = jen profese, 0 = nezná nebo si plete fakta. Hlasy malých modelů váží víc. Sedm koleček ukazuje, kdo poznal: <span style="color:var(--c-top)">modrá</span> velké modely, <span style="color:var(--c-mid)">zelená</span> střední, <span style="color:var(--c-small)">červená</span> malé; plné kolečko = poznal.</p>
+    </div>
+  </div>
+
+  <div class="gaps" id="gaps" style="display:none">
+    <div class="gapcard pos">
+      <div class="lbl"><span class="badge"></span> Zná Wikipedie, ne AI</div>
+      <ol id="gapPos"></ol>
+    </div>
+    <div class="gapcard neg">
+      <div class="lbl"><span class="badge"></span> Zná AI víc, než data napovídají</div>
+      <ol id="gapNeg"></ol>
+    </div>
+  </div>
+
+  <div class="models" id="models"></div>
+
+  <div id="loaderr" class="loaderr" style="display:none"></div>
+
+  <div id="results" style="display:none">
+    <div class="resbar">
+      <div class="count">Žebříček <b id="totalCount">0</b> osobností · LLM změřeno <b id="llmCount">0</b></div>
+      <input class="search" id="search" placeholder="Hledat jméno…">
+    </div>
+    <div class="tablewrap">
+      <table><thead><tr id="head"></tr></thead><tbody id="body"></tbody></table>
+      <div class="empty" id="empty" style="display:none">Nic neodpovídá filtru.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+const $=s=>document.querySelector(s);
+const TIER_C={strop:"t1", "střed":"t2", sklep:"t3"};
+function esc(s){return (s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
+
+let DATA=[], PANEL=[], maxC=1;
+let SORT={key:"rank",dir:1}, q="";
+
+/* wiki 0–1000 → srovnatelná škála 0–10; gap = wiki − AI (kladný = data napřed) */
+function wikiNorm(p){ return p.composite/100; }
+function gapOf(p){ return p.llm? wikiNorm(p)-p.llm.coef : null; }
+
+const COLS=[
+  {k:"rank",l:"#",sortable:true},
+  {k:"name",l:"Jméno",sortable:true},
+  {k:"composite",l:"Z dat (0–1000)",sortable:true},
+  {k:"llmCoef",l:"Z modelů (0–10)",sortable:true},
+  {k:"gap",l:"Rozdíl",sortable:true},
+];
+function buildHead(){
+  $("#head").innerHTML=COLS.map(c=>{ const arr=SORT.key===c.k?`<span class="arr">${SORT.dir<0?"▼":"▲"}</span>`:"";
+    return `<th data-k="${c.k}">${c.l} ${arr}</th>`; }).join("");
+  $("#head").querySelectorAll("th[data-k]").forEach(th=>{
+    th.onclick=()=>{ const k=th.dataset.k; if(SORT.key===k) SORT.dir*=-1; else SORT={key:k,dir:(k==="name"||k==="rank")?1:-1}; buildHead(); render(); }; });
+}
+function llmCell(p){
+  if(!p.llm) return `<div class="llmrow"><span class="llmval todo">—</span></div>`;
+  const circ=PANEL.map(m=>{ const r=p.llm.models.find(x=>x.model===m.model);
+    const on=r&&r.available&&r.recog>0, un=!r||!r.available;
+    return `<span class="circ ${TIER_C[m.tier]}${on?' on':''}${un?' un':''}" title="${esc(m.model)} · ${r&&r.available?('rozpoznání '+r.recog):'nedostupný'}"></span>`; }).join("");
+  return `<div class="llmrow"><span class="llmval">${p.llm.coef}<span class="of">/10</span></span><span class="circles">${circ}</span></div>`;
+}
+function gapCell(p){
+  const g=gapOf(p);
+  if(g===null) return `<span class="gapval todo">—</span>`;
+  const r=Math.round(g*10)/10;
+  if(Math.abs(r)<0.05) return `<span class="gapval zero">0,0</span>`;
+  const cls=r>0?"pos":"neg", ar=r>0?"▲":"▼";
+  return `<span class="gapval ${cls}"><span class="ar">${ar}</span>${r>0?"+":""}${String(r).replace(".",",")}</span>`;
+}
+function render(){
+  let r=[...DATA]; if(q) r=r.filter(p=>p.name.toLowerCase().includes(q));
+  const k=SORT.key;
+  r.sort((a,b)=>{
+    if(k==="name") return SORT.dir*String(a.name).localeCompare(String(b.name),"cs");
+    if(k==="llmCoef") return SORT.dir*(((a.llm?a.llm.coef:-1))-((b.llm?b.llm.coef:-1)));
+    if(k==="gap"){ const ga=gapOf(a),gb=gapOf(b); return SORT.dir*(((ga===null?-Infinity:ga))-((gb===null?-Infinity:gb))); }
+    return SORT.dir*((a[k]||0)-(b[k]||0));
+  });
+  $("#totalCount").textContent=DATA.length;
+  $("#llmCount").textContent=DATA.filter(p=>p.llm).length;
+  $("#empty").style.display=r.length?"none":"block";
+  $("#body").innerHTML=r.map(p=>{
+    const gw=Math.round(p.parts.g*1000/maxC*100),uw=Math.round(p.parts.dur*1000/maxC*100),dw=Math.round(p.parts.l*1000/maxC*100);
+    return `<tr>
+      <td class="rank">${p.rank}</td>
+      <td class="name"><a href="https://cs.wikipedia.org/wiki/${encodeURIComponent(p.title)}" target="_blank" rel="noopener">${esc(p.name)}</a>${p.birth?`<span class="yr">${p.birth}</span>`:""}${p.desc?`<span class="desc">${esc(p.desc)}</span>`:""}</td>
+      <td class="wiki"><div class="scorerow"><span class="scoreval">${p.composite}</span>
+        <span class="mix"><span class="g" style="width:${gw}%"></span><span class="u" style="width:${uw}%"></span><span class="d" style="width:${dw}%"></span></span></div></td>
+      <td class="llm">${llmCell(p)}</td>
+      <td class="gap">${gapCell(p)}</td>
+    </tr>`; }).join("");
+}
+
+function renderGaps(){
+  const measured=DATA.filter(p=>p.llm);
+  if(measured.length<2){ $("#gaps").style.display="none"; return; }
+  const withGap=measured.map(p=>({p,g:gapOf(p)}));
+  const pos=[...withGap].sort((a,b)=>b.g-a.g).slice(0,5);
+  const neg=[...withGap].sort((a,b)=>a.g-b.g).slice(0,5);
+  const li=({p,g})=>`<li><span class="nm">${esc(p.name)}${p.birth?`<span class="yr">${p.birth}</span>`:""}</span>
+    <span class="vals"><b>${p.composite}</b> dat · <b>${p.llm.coef}</b>/10 AI</span></li>`;
+  $("#gapPos").innerHTML=pos.map(li).join("");
+  $("#gapNeg").innerHTML=neg.filter(x=>x.g<0).map(li).join("") || `<li><span class="vals">Zatím žádný záporný rozdíl.</span></li>`;
+  $("#gaps").style.display="grid";
+}
+
+function renderModels(){
+  if(!PANEL.length){ $("#models").style.display="none"; return; }
+  const grp=t=>PANEL.filter(m=>m.tier===t);
+  const chip=m=>`<code>${esc(m.model)}</code>`;
+  $("#models").innerHTML=`<b>Měřeno na sedmi modelech:</b> `+
+    `<span class="grp"><span class="dotc t1"></span>velké: ${grp("strop").map(chip).join(", ")}</span>`+
+    `<span class="grp"><span class="dotc t2"></span>střední: ${grp("střed").map(chip).join(", ")}</span>`+
+    `<span class="grp"><span class="dotc t3"></span>malé: ${grp("sklep").map(chip).join(", ")}</span>`+
+    (DATA._generated?`<div class="stamp">Data přepočítána ${esc(DATA._generated)}.</div>`:"");
+}
+
+function showLoadErr(msg){
+  $("#loaderr").style.display="block";
+  $("#loaderr").innerHTML=`<b>Nepodařilo se načíst <code>data.json</code>.</b><br>${esc(msg)}<br><br>
+    Pokud otevíráš stránku lokálně přes <code>file://</code>, prohlížeč blokuje načtení dat. Spusť ve složce malý server, např.:<br>
+    <code>python3 -m http.server 8000</code><br>a otevři <code>http://localhost:8000/index.html</code>. Po nahrání na web funguje bez čehokoli.`;
+}
+
+async function load(){
+  try{
+    const r=await fetch("data.json",{cache:"no-store"});
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    const j=await r.json();
+    PANEL=j.panel||[];
+    DATA=(j.people||[]).map(p=>({...p, parts:p.parts||{g:0,dur:0,l:0}}));
+    DATA._generated=j.generated||"";
+    maxC=Math.max(1,...DATA.map(p=>p.composite));
+    renderModels(); renderGaps(); buildHead(); render();
+    $("#results").style.display="block";
+  }catch(e){ showLoadErr(String(e.message||e)); }
+}
+
+$("#search").oninput=e=>{ q=e.target.value.trim().toLowerCase(); render(); };
+load();
+</script>
+</body>
+</html>
