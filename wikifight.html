@@ -1,0 +1,328 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WikiFight</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F4F5F7; --panel:#FFFFFF; --ink:#14171C; --muted:#6C7480; --faint:#9AA1AC;
+    --line:#E4E7EC; --line2:#EEF0F3;
+    --global:#4338CA; --durable:#0E8C7A; --domestic:#DB6D28;
+    --win:#C7971F; --bad:#C0392B; --ink-btn:#191D24;
+    --r:12px;
+    --disp:"Space Grotesk",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    --mono:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{background:var(--bg); color:var(--ink); font-family:var(--disp); font-size:15px; line-height:1.5; -webkit-font-smoothing:antialiased}
+  .wrap{max-width:920px; margin:0 auto; padding:28px 22px 80px}
+  a{color:var(--global); text-decoration:none} a:hover{text-decoration:underline}
+
+  header{margin-bottom:22px}
+  .eyebrow{font-family:var(--mono); font-size:11.5px; letter-spacing:.16em; text-transform:uppercase; color:var(--muted); display:flex; gap:10px; align-items:center}
+  .eyebrow .dot{width:6px;height:6px;border-radius:50%; background:linear-gradient(90deg,var(--global),var(--domestic))}
+  h1{font-size:clamp(30px,5vw,52px); font-weight:700; letter-spacing:-.02em; margin:.26em 0 .12em; line-height:1.02}
+  h1 em{font-style:normal; background:linear-gradient(90deg,var(--global),var(--durable),var(--domestic)); -webkit-background-clip:text; background-clip:text; color:transparent}
+  .lede{max-width:60ch; color:#3A4049}
+
+  /* lineup */
+  .lineup{display:grid; grid-template-columns:1fr auto 1fr; gap:14px; align-items:start; margin-top:22px}
+  .side label{display:block; font-family:var(--mono); font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); margin-bottom:7px}
+  .side input[type=text]{width:100%; font-family:var(--disp); font-size:17px; font-weight:500; padding:12px 14px; border:1px solid var(--line); border-radius:10px; background:var(--panel); color:var(--ink)}
+  .side input:focus{outline:none; border-color:var(--global)}
+  .side select{width:100%; margin-top:8px; font-family:var(--disp); font-size:13px; padding:9px 10px; border:1px solid var(--line); border-radius:8px; background:var(--bg); color:var(--ink); display:none}
+  .side select.show{display:block}
+  .side .hint{font-size:11.5px; color:var(--faint); margin-top:6px; min-height:14px}
+  .vsmid{align-self:center; font-family:var(--mono); font-weight:600; font-size:13px; color:var(--muted); padding-top:26px}
+  .vsmid span{display:inline-flex; width:38px; height:38px; border-radius:50%; border:1px solid var(--line); align-items:center; justify-content:center; background:var(--panel)}
+
+  .runrow{display:flex; gap:12px; align-items:center; margin-top:18px; flex-wrap:wrap}
+  button.go{font-family:var(--disp); font-weight:600; font-size:16px; color:#fff; background:var(--ink-btn); border:0; border-radius:10px; padding:12px 26px; cursor:pointer; transition:opacity .15s}
+  button.go:hover{opacity:.88} button.go:disabled{opacity:.4; cursor:default}
+  .status{font-family:var(--mono); font-size:12.5px; color:var(--muted)}
+  .status.err{color:var(--bad); font-family:var(--disp)}
+
+  /* arena */
+  .arena{display:grid; grid-template-columns:1fr auto 1fr; gap:14px; align-items:stretch; margin-top:26px}
+  .arena.hide{display:none}
+  .fighter{position:relative; background:var(--panel); border:1px solid var(--line); border-radius:var(--r); padding:20px 18px; transition:border-color .2s, box-shadow .2s}
+  .fighter.win{border-color:var(--win); box-shadow:0 0 0 3px rgba(199,151,31,.16)}
+  .fighter.lose{opacity:.82}
+  .crown{position:absolute; top:-11px; left:50%; transform:translateX(-50%); font-family:var(--mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:#fff; background:var(--win); padding:3px 10px; border-radius:20px; display:none}
+  .fighter.win .crown{display:block}
+  .fname{font-size:20px; font-weight:600; line-height:1.15}
+  .fname a{color:var(--ink)}
+  .fmeta{font-size:12.5px; color:var(--muted); margin-top:2px; min-height:16px}
+  .fscore{font-family:var(--mono); font-size:46px; font-weight:600; letter-spacing:-.02em; margin:12px 0 2px}
+  .fscore .spk{font-family:var(--disp); font-size:15px; margin-left:6px; vertical-align:middle}
+  .fscore-lab{font-family:var(--mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--faint)}
+  .bars{margin-top:16px; display:flex; flex-direction:column; gap:9px}
+  .brow{display:flex; align-items:center; gap:9px}
+  .brow .bl{font-family:var(--mono); font-size:10.5px; width:58px; flex:none; color:var(--muted)}
+  .brow .bt{flex:1; height:8px; border-radius:5px; background:var(--line2); overflow:hidden}
+  .brow .bf{height:100%; border-radius:5px}
+  .brow.g .bf{background:var(--global)} .brow.u .bf{background:var(--durable)} .brow.d .bf{background:var(--domestic)}
+  .brow .bn{font-family:var(--mono); font-size:10.5px; width:48px; text-align:right; flex:none; color:#3A4049}
+  .raw{margin-top:14px; font-family:var(--mono); font-size:11px; color:var(--faint); line-height:1.7}
+  .arena .vs{align-self:center; font-family:var(--disp); font-weight:700; font-size:20px; color:var(--muted)}
+
+  .verdict{margin-top:22px; text-align:center; font-size:18px; min-height:26px}
+  .verdict b{font-weight:700}
+  .verdict .w{color:var(--win)}
+
+  .legend{display:flex; gap:16px; justify-content:center; font-size:12px; color:var(--muted); margin-top:18px; flex-wrap:wrap}
+  .legend i{width:10px;height:10px;border-radius:3px;display:inline-block;margin-right:6px;vertical-align:-1px}
+  .legend .g{background:var(--global)} .legend .u{background:var(--durable)} .legend .d{background:var(--domestic)}
+
+  footer{margin-top:34px; font-size:12.5px; color:var(--faint); line-height:1.65; max-width:74ch}
+  footer b{color:var(--muted); font-weight:600}
+
+  @media(max-width:640px){
+    .lineup,.arena{grid-template-columns:1fr}
+    .vsmid{padding-top:0; text-align:center} .arena .vs{padding:4px 0}
+  }
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow"><span class="dot"></span> WikiFight</div>
+    <h1>Kdo je <em>známější</em>?</h1>
+    <p class="lede">Zadej dvě osobnosti a nech je utkat. Vyhrává ta s vyšším skóre známosti — počítaným z otevřených dat (počet jazyků Wikipedie, hustota institucionálních záznamů a čtenost). U běžných jmen s více nositeli můžeš zadání upřesnit.</p>
+  </header>
+
+  <div class="lineup">
+    <div class="side">
+      <label>Vyzyvatel A</label>
+      <input type="text" id="nameA" placeholder="např. Karel Gott" autocomplete="off">
+      <select id="pickA"></select>
+      <div class="hint" id="hintA"></div>
+    </div>
+    <div class="vsmid"><span>VS</span></div>
+    <div class="side">
+      <label>Vyzyvatel B</label>
+      <input type="text" id="nameB" placeholder="např. Karel Čapek" autocomplete="off">
+      <select id="pickB"></select>
+      <div class="hint" id="hintB"></div>
+    </div>
+  </div>
+
+  <div class="runrow">
+    <button class="go" id="go">Utkat se</button>
+    <span class="status" id="status"></span>
+  </div>
+
+  <div class="arena hide" id="arena">
+    <div class="fighter" id="cardA">
+      <div class="crown">Vítěz</div>
+      <div class="fname" id="fnA">—</div>
+      <div class="fmeta" id="fmA"></div>
+      <div class="fscore" id="fsA">—</div>
+      <div class="fscore-lab">skóre známosti</div>
+      <div class="bars" id="barsA"></div>
+      <div class="raw" id="rawA"></div>
+    </div>
+    <div class="vs">×</div>
+    <div class="fighter" id="cardB">
+      <div class="crown">Vítěz</div>
+      <div class="fname" id="fnB">—</div>
+      <div class="fmeta" id="fmB"></div>
+      <div class="fscore" id="fsB">—</div>
+      <div class="fscore-lab">skóre známosti</div>
+      <div class="bars" id="barsB"></div>
+      <div class="raw" id="rawB"></div>
+    </div>
+  </div>
+  <div class="verdict" id="verdict"></div>
+  <div class="legend" id="legend" style="display:none">
+    <span><i class="g"></i>globální (jazyky Wikipedie)</span>
+    <span><i class="u"></i>trvalá (institucionální záznamy)</span>
+    <span><i class="d"></i>živá (čtenost cs+en)</span>
+  </div>
+
+  <footer>
+    <p><b>Jak se počítá skóre.</b> Tři osy jako v žebříčku známosti: <i>globální</i> (počet jazyků Wikipedie), <i>trvalá</i> (hustota autoritních záznamů — VIAF, GND, ISNI, ORCID… — doplněná počtem tvrzení na Wikidatech) a <i>živá</i> (medián měsíční čtenosti za 24 měsíců, sečtený přes českou a anglickou Wikipedii kvůli férovosti mezinárodních soubojů). Každá osa se logaritmuje a vztáhne k pevnému stropu (0–1 000); na rozdíl od žebříčku jde o <b>absolutní</b> hodnotu, ne percentil — proto se čísla od žebříčku liší, ale logika je stejná. Váhy: 20 % globální, 50 % trvalá, 30 % živá.</p>
+    <p><b>Upřesnění.</b> Jména se hledají přes Wikidata. Když nositelů je víc (běžné příjmení), nabídne se rozbalovátko seřazené od nejznámějšího — vyber správného a souboj se přepočítá. Funguje pro kohokoli s článkem na Wikipedii, živé i historické. ⚡ označí toho, jehož čtenost je hlavně nárazová špička.</p>
+  </footer>
+</div>
+
+<script>
+"use strict";
+const $=s=>document.querySelector(s);
+const WDQS="https://query.wikidata.org/sparql";
+const WBSEARCH="https://www.wikidata.org/w/api.php";
+const PVBASE=p=>`https://wikimedia.org/api/rest_v1/metrics/pageviews/per-article/${p}.wikipedia/all-access/all-agents/`;
+
+/* váhy a referenční stropy pro absolutní skóre */
+const W={g:0.20, dur:0.50, l:0.30};
+const REF={sitelinks:250, ids:60, statements:600, pv:300000};
+
+const rowsByQid={};   // qid -> data row
+const pvCache={};     // qid -> {live, peak, median}
+
+/* ---------- síť ---------- */
+async function sparql(query){
+  const r=await fetch(WDQS+"?format=json&query="+encodeURIComponent(query));
+  if(!r.ok) throw new Error("Wikidata "+r.status);
+  return (await r.json()).results.bindings;
+}
+async function wbsearch(name){
+  const u=WBSEARCH+"?action=wbsearchentities&format=json&language=cs&uselang=cs&type=item&limit=15&origin=*&search="+encodeURIComponent(name);
+  const r=await fetch(u);
+  if(!r.ok) throw new Error("hledání "+r.status);
+  return (await r.json()).search||[];
+}
+// najdi lidské nositele jména, seřazené podle počtu jazyků; uloží do rowsByQid
+async function resolve(name){
+  const hits=await wbsearch(name);
+  if(!hits.length) return [];
+  const ids=hits.map(h=>h.id).slice(0,15);
+  const rows=await sparql(`
+SELECT ?person ?personLabel ?personDescription ?linkcount ?idcount ?stcount ?csArt ?enArt WHERE {
+  VALUES ?person { ${ids.map(q=>"wd:"+q).join(" ")} }
+  ?person wdt:P31 wd:Q5 ;
+          wikibase:sitelinks ?linkcount ;
+          wikibase:identifiers ?idcount ;
+          wikibase:statements ?stcount .
+  OPTIONAL { ?csArt schema:about ?person ; schema:isPartOf <https://cs.wikipedia.org/> . }
+  OPTIONAL { ?enArt schema:about ?person ; schema:isPartOf <https://en.wikipedia.org/> . }
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "cs,en". }
+} ORDER BY DESC(?linkcount)`);
+  const out=rows.map(b=>{
+    const qid=b.person.value.split("/").pop();
+    const row={ qid,
+      name:b.personLabel?.value||qid,
+      desc:b.personDescription?.value||"",
+      sitelinks:+b.linkcount.value,
+      ids:+(b.idcount?.value||0),
+      statements:+(b.stcount?.value||0),
+      csTitle:b.csArt? decodeURIComponent(b.csArt.value.split("/wiki/").pop()):null,
+      enTitle:b.enArt? decodeURIComponent(b.enArt.value.split("/wiki/").pop()):null,
+      url:b.person.value };
+    rowsByQid[qid]=row; return row;
+  });
+  return out;  // už seřazeno podle sitelinks (SPARQL ORDER BY)
+}
+
+/* ---------- pageviews (24m medián) ---------- */
+function pvRange(){
+  const now=new Date();
+  const end=new Date(Date.UTC(now.getUTCFullYear(),now.getUTCMonth(),1));
+  const start=new Date(Date.UTC(end.getUTCFullYear()-2,end.getUTCMonth(),1));
+  const fmt=d=>d.getUTCFullYear()+String(d.getUTCMonth()+1).padStart(2,"0")+"01";
+  return [fmt(start),fmt(end)];
+}
+async function pvOne(project,title,from,to){
+  if(!title) return {median:0,peak:0};
+  try{
+    const r=await fetch(PVBASE(project)+encodeURIComponent(title)+"/monthly/"+from+"/"+to);
+    if(!r.ok) return {median:0,peak:0};
+    const vals=((await r.json()).items||[]).map(it=>it.views||0);
+    if(!vals.length) return {median:0,peak:0};
+    const s=[...vals].sort((a,b)=>a-b), m=Math.floor(s.length/2);
+    return { median:s.length%2? s[m]:Math.round((s[m-1]+s[m])/2), peak:Math.max(...vals) };
+  }catch(e){ return {median:0,peak:0}; }
+}
+async function pageviews(row){
+  if(pvCache[row.qid]) return pvCache[row.qid];
+  const [f,t]=pvRange();
+  const [cs,en]=await Promise.all([pvOne("cs",row.csTitle,f,t), pvOne("en",row.enTitle,f,t)]);
+  const live=cs.median+en.median, peak=Math.max(cs.peak,en.peak);
+  const res={ live, peak, spike:(peak+1)/(live+1) };
+  pvCache[row.qid]=res; return res;
+}
+
+/* ---------- skóre ---------- */
+const axis=(v,ref)=>Math.min(1,Math.log10(v+1)/Math.log10(ref+1));
+function score(row,pv){
+  const nG=axis(row.sitelinks,REF.sitelinks);
+  const nU=0.75*axis(row.ids,REF.ids)+0.25*axis(row.statements,REF.statements);
+  const nL=axis(pv.live,REF.pv);
+  const total=Math.round(1000*(W.g*nG+W.dur*nU+W.l*nL));
+  return {total,nG,nU,nL};
+}
+
+/* ---------- UI ---------- */
+let lastA="", lastB="";
+$("#go").onclick=fight;
+[$("#nameA"),$("#nameB")].forEach(el=>el.addEventListener("keydown",e=>{ if(e.key==="Enter") fight(); }));
+$("#pickA").onchange=()=>runMatch();
+$("#pickB").onchange=()=>runMatch();
+
+function buildPicker(sel,hintEl,cands){
+  if(cands.length<=1){ sel.classList.remove("show"); sel.innerHTML=""; }
+  else{
+    sel.innerHTML=cands.map(c=>`<option value="${c.qid}">${esc(c.name)}${c.desc?" — "+esc(c.desc):""}</option>`).join("");
+    sel.classList.add("show");
+  }
+  const top=cands[0];
+  hintEl.textContent = cands.length>1 ? cands.length+" nositelů — vyber správného" : (top?.desc||"");
+}
+
+async function fight(){
+  const a=$("#nameA").value.trim(), b=$("#nameB").value.trim();
+  if(!a||!b){ status("Zadej obě jména.","err"); return; }
+  setBusy(true); status("Hledám osobnosti…");
+  try{
+    if(a!==lastA){ const ca=await resolve(a); $("#pickA")._c=ca; buildPicker($("#pickA"),$("#hintA"),ca); lastA=a;
+      if(!ca.length){ status("Nenašel jsem osobu „"+a+"“.","err"); setBusy(false); return; } }
+    if(b!==lastB){ const cb=await resolve(b); $("#pickB")._c=cb; buildPicker($("#pickB"),$("#hintB"),cb); lastB=b;
+      if(!cb.length){ status("Nenašel jsem osobu „"+b+"“.","err"); setBusy(false); return; } }
+    await runMatch();
+  }catch(e){ status(String(e.message||e)+" — spusť soubor v prohlížeči (Chrome), ne v náhledu.","err"); }
+  finally{ setBusy(false); }
+}
+
+async function runMatch(){
+  const qa=$("#pickA").value || ($("#pickA")._c&&$("#pickA")._c[0]?.qid);
+  const qb=$("#pickB").value || ($("#pickB")._c&&$("#pickB")._c[0]?.qid);
+  if(!qa||!qb) return;
+  const A=rowsByQid[qa], B=rowsByQid[qb];
+  setBusy(true); status("Stahuju čtenost a počítám…");
+  try{
+    const [pva,pvb]=await Promise.all([pageviews(A),pageviews(B)]);
+    const sa=score(A,pva), sb=score(B,pvb);
+    renderFighter("A",A,sa,pva); renderFighter("B",B,sb,pvb);
+    const cardA=$("#cardA"), cardB=$("#cardB");
+    cardA.classList.remove("win","lose"); cardB.classList.remove("win","lose");
+    let v;
+    if(sa.total===sb.total){ v=`Remíza! Oba mají <b>${sa.total}</b>.`; }
+    else{
+      const aWin=sa.total>sb.total, win=aWin?A:B, ws=aWin?sa.total:sb.total, ls=aWin?sb.total:sa.total;
+      (aWin?cardA:cardB).classList.add("win"); (aWin?cardB:cardA).classList.add("lose");
+      v=`Vyhrává <b class="w">${esc(win.name)}</b> o <b>${ws-ls}</b> ${pts(ws-ls)} (${ws} : ${ls}).`;
+    }
+    $("#verdict").innerHTML=v;
+    $("#arena").classList.remove("hide"); $("#legend").style.display="flex";
+    status("");
+  }catch(e){ status(String(e.message||e),"err"); }
+  finally{ setBusy(false); }
+}
+
+function bar(cls,label,val){
+  return `<div class="brow ${cls}"><span class="bl">${label}</span>
+    <span class="bt"><span class="bf" style="width:${Math.round(val*100)}%"></span></span>
+    <span class="bn">${Math.round(val*100)}</span></div>`;
+}
+function renderFighter(side,row,s,pv){
+  $("#fn"+side).innerHTML=`<a href="${row.url}" target="_blank" rel="noopener">${esc(row.name)}</a>`;
+  $("#fm"+side).textContent=row.desc||"";
+  const spk = pv.spike>=4 ? `<span class="spk" title="nárazová pozornost: špička ${Math.round(pv.spike)}× medián">⚡</span>` : "";
+  $("#fs"+side).innerHTML=s.total+spk;
+  $("#bars"+side).innerHTML = bar("g","globální",s.nG)+bar("u","trvalá",s.nU)+bar("d","živá",s.nL);
+  $("#raw"+side).innerHTML=`${row.sitelinks} jazyků · ${row.ids} autorit · ${row.statements} tvrzení · ${pv.live.toLocaleString("cs-CZ")} čtenářů/měs`;
+}
+
+function pts(n){ return n===1?"bod":(n>=2&&n<=4?"body":"bodů"); }
+function esc(s){return (s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
+function status(t,cls){ const el=$("#status"); el.textContent=t||""; el.className="status"+(cls?" "+cls:""); }
+function setBusy(b){ $("#go").disabled=b; $("#go").textContent=b?"Počítám…":"Utkat se"; }
+</script>
+</body>
+</html>

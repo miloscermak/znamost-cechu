@@ -1,0 +1,430 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LLMFight</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F4F5F7; --panel:#FFFFFF; --ink:#14171C; --muted:#6C7480; --faint:#9AA1AC;
+    --line:#E4E7EC; --line2:#EEF0F3;
+    --strop:#4338CA; --stred:#0E8C7A; --sklep:#DB6D28;
+    --win:#C7971F; --bad:#C0392B; --ink-btn:#191D24;
+    --r:12px;
+    --disp:"Space Grotesk",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    --mono:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,monospace;
+  }
+  *{box-sizing:border-box} html,body{margin:0}
+  body{background:var(--bg); color:var(--ink); font-family:var(--disp); font-size:15px; line-height:1.5; -webkit-font-smoothing:antialiased}
+  .wrap{max-width:920px; margin:0 auto; padding:28px 22px 80px}
+  a{color:var(--strop); text-decoration:none} a:hover{text-decoration:underline}
+
+  header{margin-bottom:20px}
+  .eyebrow{font-family:var(--mono); font-size:11.5px; letter-spacing:.16em; text-transform:uppercase; color:var(--muted); display:flex; gap:10px; align-items:center}
+  .eyebrow .dot{width:6px;height:6px;border-radius:50%; background:linear-gradient(90deg,var(--strop),var(--sklep))}
+  h1{font-size:clamp(30px,5vw,52px); font-weight:700; letter-spacing:-.02em; margin:.26em 0 .12em; line-height:1.02}
+  h1 em{font-style:normal; background:linear-gradient(90deg,var(--strop),var(--stred),var(--sklep)); -webkit-background-clip:text; background-clip:text; color:transparent}
+  .lede{max-width:62ch; color:#3A4049}
+
+  /* api key */
+  .keybar{margin-top:18px; background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:14px 16px}
+  .keybar label{font-family:var(--mono); font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); display:block; margin-bottom:7px}
+  .keybar input{width:100%; font-family:var(--mono); font-size:13px; padding:9px 11px; border:1px solid var(--line); border-radius:8px; background:var(--bg); color:var(--ink)}
+  .keybar .note{font-size:11.5px; color:var(--faint); margin-top:7px}
+  .keybar .note a{color:var(--muted); text-decoration:underline}
+
+  .lineup{display:grid; grid-template-columns:1fr auto 1fr; gap:14px; align-items:start; margin-top:16px}
+  .side label{display:block; font-family:var(--mono); font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); margin-bottom:7px}
+  .side input[type=text]{width:100%; font-family:var(--disp); font-size:17px; font-weight:500; padding:12px 14px; border:1px solid var(--line); border-radius:10px; background:var(--panel); color:var(--ink)}
+  .side input:focus{outline:none; border-color:var(--strop)}
+  .side select{width:100%; margin-top:8px; font-family:var(--disp); font-size:13px; padding:9px 10px; border:1px solid var(--line); border-radius:8px; background:var(--bg); color:var(--ink); display:none}
+  .side select.show{display:block}
+  .side .hint{font-size:11.5px; color:var(--faint); margin-top:6px; min-height:14px}
+  .vsmid{align-self:center; font-family:var(--mono); font-weight:600; font-size:13px; color:var(--muted); padding-top:26px}
+  .vsmid span{display:inline-flex; width:38px; height:38px; border-radius:50%; border:1px solid var(--line); align-items:center; justify-content:center; background:var(--panel)}
+
+  .runrow{display:flex; gap:12px; align-items:center; margin-top:18px; flex-wrap:wrap}
+  button.go{font-family:var(--disp); font-weight:600; font-size:16px; color:#fff; background:var(--ink-btn); border:0; border-radius:10px; padding:12px 26px; cursor:pointer; transition:opacity .15s}
+  button.go:hover{opacity:.88} button.go:disabled{opacity:.4; cursor:default}
+  .status{font-family:var(--mono); font-size:12.5px; color:var(--muted)}
+  .status.err{color:var(--bad); font-family:var(--disp)}
+
+  .arena{display:grid; grid-template-columns:1fr auto 1fr; gap:14px; align-items:stretch; margin-top:26px}
+  .arena.hide{display:none}
+  .fighter{position:relative; background:var(--panel); border:1px solid var(--line); border-radius:var(--r); padding:20px 18px; transition:border-color .2s, box-shadow .2s}
+  .fighter.win{border-color:var(--win); box-shadow:0 0 0 3px rgba(199,151,31,.16)}
+  .fighter.lose{opacity:.82}
+  .crown{position:absolute; top:-11px; left:50%; transform:translateX(-50%); font-family:var(--mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:#fff; background:var(--win); padding:3px 10px; border-radius:20px; display:none}
+  .fighter.win .crown{display:block}
+  .fname{font-size:20px; font-weight:600; line-height:1.15} .fname a{color:var(--ink)}
+  .fmeta{font-size:12.5px; color:var(--muted); margin-top:2px; min-height:16px}
+  .fscore{font-family:var(--mono); font-size:46px; font-weight:600; letter-spacing:-.02em; margin:12px 0 2px}
+  .fscore .outof{font-size:22px; color:var(--faint); font-weight:400; margin-left:1px}
+  .fscore-lab{font-family:var(--mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--faint)}
+  .knew{font-family:var(--mono); font-size:12px; color:#3A4049; margin-top:14px}
+  .tiers{margin-top:11px; display:flex; flex-direction:column; gap:6px}
+  .trow{display:flex; align-items:center; gap:9px; font-family:var(--mono); font-size:11px; color:var(--muted)}
+  .trow .tl{width:46px; flex:none}
+  .dot{width:11px; height:11px; border-radius:50%; display:inline-block; border:1.5px solid var(--line)}
+  .trow.s1 .dot.on{background:var(--strop); border-color:var(--strop)}
+  .trow.s2 .dot.on{background:var(--stred); border-color:var(--stred)}
+  .trow.s3 .dot.on{background:var(--sklep); border-color:var(--sklep)}
+  .sample{margin-top:13px; font-size:11.5px; color:var(--faint); line-height:1.55; border-top:1px solid var(--line2); padding-top:10px}
+  .sample b{color:var(--muted); font-weight:600}
+  .capnote{margin-top:9px; font-size:11px; color:var(--sklep)}
+  .arena .vs{align-self:center; font-family:var(--disp); font-weight:700; font-size:20px; color:var(--muted)}
+
+  .verdict{margin-top:22px; text-align:center; font-size:18px; min-height:26px}
+  .verdict b{font-weight:700} .verdict .w{color:var(--win)}
+
+  .panelinfo{margin-top:20px; font-family:var(--mono); font-size:11.5px; color:var(--faint); text-align:center; line-height:1.8; display:none}
+  .panelinfo .m{display:inline-block; margin:0 5px; padding:2px 8px; border:1px solid var(--line); border-radius:20px}
+  .panelinfo .m.ok{color:var(--stred); border-color:#BFE3DC}
+  .panelinfo .m.no{color:var(--bad); border-color:#E8C9C4; text-decoration:line-through}
+
+  footer{margin-top:30px; font-size:12.5px; color:var(--faint); line-height:1.65; max-width:76ch}
+  footer b{color:var(--muted); font-weight:600}
+
+  @media(max-width:640px){ .lineup,.arena{grid-template-columns:1fr} .vsmid{padding-top:0;text-align:center} .arena .vs{padding:4px 0} }
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow"><span class="dot"></span> LLMFight</div>
+    <h1>Koho <em>znají modely</em> líp?</h1>
+    <p class="lede">Zadej dvě osobnosti. Panel jazykových modelů (přes OpenRouter) se každé zeptá bez přístupu k webu — odpovědi se automaticky porovnají s fakty z Wikidat. Vyhrává ten, koho modely znají líp. Neměří se encyklopedická sláva, ale to, jak hluboko je jméno zakódované ve vahách modelů.</p>
+  </header>
+
+  <div class="keybar">
+    <label>OpenRouter API klíč</label>
+    <input type="password" id="key" placeholder="sk-or-v1-…" autocomplete="off">
+    <div class="note">Klíč zůstává jen v paměti této stránky (po obnovení se zadává znovu) a posílá se přímo na OpenRouter. <b>Nehostuj tento soubor veřejně s klíčem v kódu</b> — pro veřejnou verzi je nutný backend-proxy. Klíč získáš na <a href="https://openrouter.ai/keys" target="_blank" rel="noopener">openrouter.ai/keys</a>.</div>
+  </div>
+
+  <div class="lineup">
+    <div class="side">
+      <label>Vyzyvatel A</label>
+      <input type="text" id="nameA" placeholder="např. Karel Čapek" autocomplete="off">
+      <select id="pickA"></select>
+      <div class="hint" id="hintA"></div>
+    </div>
+    <div class="vsmid"><span>VS</span></div>
+    <div class="side">
+      <label>Vyzyvatel B</label>
+      <input type="text" id="nameB" placeholder="např. Bohumil Hrabal" autocomplete="off">
+      <select id="pickB"></select>
+      <div class="hint" id="hintB"></div>
+    </div>
+  </div>
+
+  <div class="runrow">
+    <button class="go" id="go">Utkat se</button>
+    <span class="status" id="status"></span>
+  </div>
+
+  <div class="arena hide" id="arena">
+    <div class="fighter" id="cardA">
+      <div class="crown">Vítěz</div>
+      <div class="fname" id="fnA">—</div>
+      <div class="fmeta" id="fmA"></div>
+      <div class="fscore" id="fsA">—</div>
+      <div class="fscore-lab">znalost modely · 0–10</div>
+      <div class="knew" id="knA"></div>
+      <div class="tiers" id="tiA"></div>
+      <div class="capnote" id="capA" style="display:none">⚠ nezná ho žádný frontier model — skóre zastropováno</div>
+      <div class="sample" id="saA"></div>
+    </div>
+    <div class="vs">×</div>
+    <div class="fighter" id="cardB">
+      <div class="crown">Vítěz</div>
+      <div class="fname" id="fnB">—</div>
+      <div class="fmeta" id="fmB"></div>
+      <div class="fscore" id="fsB">—</div>
+      <div class="fscore-lab">znalost modely · 0–10</div>
+      <div class="knew" id="knB"></div>
+      <div class="tiers" id="tiB"></div>
+      <div class="capnote" id="capB" style="display:none">⚠ nezná ho žádný frontier model — skóre zastropováno</div>
+      <div class="sample" id="saB"></div>
+    </div>
+  </div>
+  <div class="verdict" id="verdict"></div>
+  <div class="panelinfo" id="panelinfo"></div>
+
+  <footer>
+    <p><b>Jak se měří.</b> Každý model dostane neutrální prompt „kdo je [jméno] (nar. [rok])?" — rok jednoznačně určí nositele, ale neprozradí nic, co se hodnotí. Model buď přizná <i>UNKNOWN</i>, nebo uvede profesi, národnost a čím je významný. Odpověď se automaticky porovná s Wikidaty: <b>2</b> = sedí profese i národnost, <b>1</b> = sedí jen profese (zná rámcově), <b>0</b> = nezná nebo si plete fakta. Konfabulace záměrně skóruje jako neznalost — sebevědomě špatná odpověď znamená, že člověk ve vahách není.</p>
+    <p><b>Koeficient 0–10.</b> Vážený průměr rozpoznání přes panel, zaokrouhlený na celé číslo 0–10 (0 = nezná nikdo, 10 = všichni přesně). Záměrně hrubá škála: u sedmi modelů a tří úrovní rozpoznání by přesnější číslo předstíralo přesnost, kterou měření nemá — a malé modely navíc kolísají (jednou jméno „najdou", podruhé ne). Hlasy malých modelů váží víc (strop 1×, střed 2×, sklep 3,5×): že tě zná i malý model, je vzácný a silný signál. Pojistka: pokud tě nezná žádný frontier model, koeficient se zastropuje (nejvýš 2) — „znalost" malého modelu je pak nejspíš jen náhodná trefa přes jméno.</p>
+    <p><b>Meze.</b> Měříš konkrétní panel v konkrétní den, ne absolutní pravdu o vahách. Auto-verifikace radši podstřelí (neověřitelný detail nezapočítá), takže absolutní čísla ber jako pořadí, ne kalibrovanou hodnotu. Modely neznají nikoho, kdo se proslavil po jejich tréninku. Slugy modelů v kódu možná bude třeba zaktualizovat podle <a href="https://openrouter.ai/models" target="_blank" rel="noopener">openrouter.ai/models</a>.</p>
+  </footer>
+</div>
+
+<script>
+"use strict";
+const $=s=>document.querySelector(s);
+const WDQS="https://query.wikidata.org/sparql";
+const WBSEARCH="https://www.wikidata.org/w/api.php";
+const OPENROUTER="https://openrouter.ai/api/v1/chat/completions";
+
+/* ===== PANEL MODELŮ — uprav slugy podle openrouter.ai/models ===== */
+const PANEL=[
+  // FRONTIER (strop) — ověřeno na OpenRouteru
+  {model:"anthropic/claude-opus-4.8",       tier:"strop"},
+  {model:"openai/gpt-5.5",                  tier:"strop"},
+  {model:"google/gemini-3.1-pro-preview",   tier:"strop"},
+  // STŘED — výkonné, ale levnější
+  {model:"deepseek/deepseek-v4-flash",      tier:"střed"},
+  {model:"openai/gpt-5.4-mini",             tier:"střed"},
+  // SKLEP — malé modely (tady vzniká rozlišení: zná-li tě i malý model, jsi hluboko)
+  {model:"google/gemma-3-12b-it",           tier:"sklep"},
+  {model:"mistralai/mistral-small-2603",    tier:"sklep"},   // Mistral Small 4 (evropský korpus)
+];
+const TIER_W={strop:1, "střed":2, sklep:3.5};
+const CAP_NO_FRONTIER=2;     // strop koeficientu (0–10), když nezná žádný frontier
+
+/* ===== mapa profesí na obory (dvojjazyčně) pro auto-verifikaci ===== */
+const FIELDS={
+  politika:["politik","politič","ministr","preziden","senátor","poslan","diplomat","guvernér","politician","minister","president","senator","diplomat","governor","statesman","mp "],
+  sport:["sport","fotbal","hokej","tenis","atlet","lyžař","závodník","trenér","brankář","football","soccer","hockey","tennis","athlete","ski","player","coach","olympic","cyclist","skier","boxer","racer"],
+  hudba:["hudb","zpěv","skladatel","kytar","klavír","dirigent","raper","music","singer","composer","guitar","pianist","rapper","conductor","band","songwriter","violinist","cellist"],
+  film:["herec","hereč","režisér","moderátor","komik","bavič","film","televiz","divadel","actor","actress","director","filmmaker","presenter","comedian","screenwriter","producer","television","theatre","theater"],
+  veda:["věd","fyzik","chemik","biolog","matematik","historik","filozof","ekonom","lékař","profesor","sociolog","psycholog","právník","scien","physic","chemist","biolog","mathematic","historian","philosoph","econom","professor","researcher","academic","physician","doctor","lawyer","jurist"],
+  literatura:["spisovatel","básník","prozaik","dramatik","esejist","překladatel","writer","author","novelist","poet","playwright","essayist","translator","literary","dramatist"],
+  zurnalistika:["novinář","publicist","redaktor","reportér","komentátor","journalist","publicist","reporter","columnist","editor","blogger","youtuber","podcaster"],
+  byznys:["podnikatel","manažer","ředitel","investor","podnikatel","entrepreneur","businessman","businessperson","manager","ceo","investor","founder","executive"],
+  umeni:["malíř","sochař","výtvarník","fotograf","architekt","designér","painter","sculptor","architect","photographer","designer","artist","illustrator"],
+};
+function fieldsOf(text){
+  const t=(text||"").toLowerCase(); const out=new Set();
+  for(const f in FIELDS){ for(const k of FIELDS[f]){ if(t.includes(k)){ out.add(f); break; } } }
+  return out;
+}
+
+const rowsByQid={};
+const recogCache={};   // qid|model -> {recog, raw, parsed}
+
+/* ---------- síť: Wikidata ---------- */
+async function sparql(query){
+  const r=await fetch(WDQS+"?format=json&query="+encodeURIComponent(query));
+  if(!r.ok) throw new Error("Wikidata "+r.status);
+  return (await r.json()).results.bindings;
+}
+async function wbsearch(name){
+  const u=WBSEARCH+"?action=wbsearchentities&format=json&language=cs&uselang=cs&type=item&limit=15&origin=*&search="+encodeURIComponent(name);
+  const r=await fetch(u); if(!r.ok) throw new Error("hledání "+r.status);
+  return (await r.json()).search||[];
+}
+async function resolve(name){
+  const hits=await wbsearch(name); if(!hits.length) return [];
+  const meta={}; hits.forEach(h=>meta[h.id]={label:h.label, desc:h.description||""});
+  const ids=hits.map(h=>h.id).slice(0,15);
+  const rows=await sparql(`
+SELECT ?person ?birth ?linkcount
+  (GROUP_CONCAT(DISTINCT ?occEn;separator=" | ") AS ?occsEn)
+  (GROUP_CONCAT(DISTINCT ?occCs;separator=" | ") AS ?occsCs)
+  (GROUP_CONCAT(DISTINCT ?ctryEn;separator=" | ") AS ?ctry)
+  (GROUP_CONCAT(DISTINCT ?demEn;separator=" | ") AS ?dem)
+WHERE {
+  VALUES ?person { ${ids.map(q=>"wd:"+q).join(" ")} }
+  ?person wdt:P31 wd:Q5 ; wikibase:sitelinks ?linkcount .
+  OPTIONAL { ?person wdt:P569 ?bd. BIND(YEAR(?bd) AS ?birth) }
+  OPTIONAL { ?person wdt:P106 ?o. ?o rdfs:label ?occEn. FILTER(LANG(?occEn)="en") }
+  OPTIONAL { ?person wdt:P106 ?o2. ?o2 rdfs:label ?occCs. FILTER(LANG(?occCs)="cs") }
+  OPTIONAL { ?person wdt:P27 ?c. ?c rdfs:label ?ctryEn. FILTER(LANG(?ctryEn)="en")
+             OPTIONAL { ?c wdt:P1549 ?demEn. FILTER(LANG(?demEn)="en") } }
+} GROUP BY ?person ?birth ?linkcount
+ORDER BY DESC(?linkcount)`);
+  return rows.map(b=>{
+    const qid=b.person.value.split("/").pop();
+    const m=meta[qid]||{};
+    const row={ qid,
+      name:m.label||qid,
+      desc:m.desc||"",
+      birth:b.birth?b.birth.value:null,
+      sitelinks:+b.linkcount.value,
+      occ:[(b.occsEn?.value||""),(b.occsCs?.value||"")].join(" | "),
+      natTokens:[(b.ctry?.value||""),(b.dem?.value||"")].join(" | ").toLowerCase(),
+      url:b.person.value };
+    rowsByQid[qid]=row; return row;
+  });
+}
+
+/* ---------- OpenRouter ---------- */
+function buildPrompt(row){
+  const born = row.birth ? ` (born ${row.birth})` : "";
+  return `Identify this specific person using only your own training knowledge. Do not guess or invent.
+Person: ${row.name}${born}
+If you are not reasonably confident who this is, reply with exactly: UNKNOWN
+Otherwise reply in exactly these three lines and nothing else:
+PROFESSION: <their main profession or field>
+NATIONALITY: <their nationality>
+KNOWN FOR: <one notable work, role, or achievement>`;
+}
+async function askModel(model,prompt,key){
+  const r=await fetch(OPENROUTER,{ method:"POST",
+    headers:{ "Authorization":"Bearer "+key, "Content-Type":"application/json" },
+    body:JSON.stringify({ model, temperature:0, max_tokens:300, messages:[{role:"user",content:prompt}] }) });
+  if(!r.ok){ const t=await r.text().catch(()=>""); throw new Error("HTTP "+r.status+(t?" "+t.slice(0,80):"")); }
+  const j=await r.json();
+  return j.choices?.[0]?.message?.content||"";
+}
+
+/* ---------- verifikace odpovědi -> 0/1/2 ---------- */
+function verify(text,row){
+  const raw=(text||"").trim();
+  if(!raw || /^\W*unknown\W*$/i.test(raw)) return {recog:0, prof:"", nat:"", knownfor:""};
+  const prof=(raw.match(/PROFESSION:\s*(.+)/i)||[])[1]||"";
+  const nat =(raw.match(/NATIONALITY:\s*(.+)/i)||[])[1]||"";
+  const kf  =(raw.match(/KNOWN FOR:\s*(.+)/i)||[])[1]||"";
+  if(!prof && /unknown/i.test(raw)) return {recog:0, prof:"", nat:"", knownfor:""};
+  const profText = prof || raw;   // fallback: nestrukturovaná odpověď
+  const truthFields=fieldsOf(row.occ);
+  const said=fieldsOf(profText);
+  let profMatch=false; for(const f of said){ if(truthFields.has(f)){ profMatch=true; break; } }
+  // národnost: token z Wikidat (země/demonymum) jako podřetězec odpovědi
+  const natText=(nat||"").toLowerCase();
+  let natMatch=false;
+  for(const tok of row.natTokens.split(/[|,]/).map(s=>s.trim()).filter(s=>s.length>3)){
+    if(natText.includes(tok)){ natMatch=true; break; }
+  }
+  const recog = profMatch ? (natMatch?2:1) : 0;
+  return {recog, prof:profText.trim(), nat:nat.trim(), knownfor:kf.trim()};
+}
+
+/* ---------- skóre osoby ---------- */
+async function scorePerson(row,key,onModel){
+  const prompt=buildPrompt(row);
+  const results=await Promise.all(PANEL.map(async m=>{
+    const ck=row.qid+"|"+m.model;
+    if(recogCache[ck]) { onModel&&onModel(m.model,true); return {...m, ...recogCache[ck], available:true}; }
+    try{
+      const text=await askModel(m.model,prompt,key);
+      const v=verify(text,row);
+      recogCache[ck]=v; onModel&&onModel(m.model,true);
+      return {...m, ...v, available:true};
+    }catch(e){ onModel&&onModel(m.model,false,e); return {...m, recog:0, available:false, err:String(e.message||e)}; }
+  }));
+  const avail=results.filter(r=>r.available);
+  let score=0, num=0, den=0;
+  for(const r of avail){ const w=TIER_W[r.tier]||1; num+=w*(r.recog/2); den+=w; }
+  score = den? Math.round(10*num/den) : 0;
+  const topRecog=avail.filter(r=>r.tier==="strop").reduce((s,r)=>s+r.recog,0);
+  const hasTop=avail.some(r=>r.tier==="strop");
+  const capped = hasTop && topRecog===0 && score>CAP_NO_FRONTIER;
+  if(capped) score=CAP_NO_FRONTIER;
+  return {score, results, avail, capped};
+}
+
+/* ---------- UI ---------- */
+let lastA="", lastB="";
+$("#go").onclick=fight;
+[$("#nameA"),$("#nameB"),$("#key")].forEach(el=>el.addEventListener("keydown",e=>{ if(e.key==="Enter") fight(); }));
+$("#pickA").onchange=()=>runMatch();
+$("#pickB").onchange=()=>runMatch();
+
+function buildPicker(sel,hintEl,cands){
+  if(cands.length<=1){ sel.classList.remove("show"); sel.innerHTML=""; }
+  else{ sel.innerHTML=cands.map(c=>`<option value="${c.qid}">${esc(c.name)}${c.desc?" — "+esc(c.desc):""}${c.birth?" ("+c.birth+")":""}</option>`).join(""); sel.classList.add("show"); }
+  const top=cands[0];
+  hintEl.textContent = cands.length>1 ? cands.length+" nositelů — vyber správného" : (top?.desc||"");
+  sel._c=cands;
+}
+
+async function fight(){
+  const key=$("#key").value.trim();
+  const a=$("#nameA").value.trim(), b=$("#nameB").value.trim();
+  if(!key){ status("Zadej OpenRouter API klíč.","err"); return; }
+  if(!a||!b){ status("Zadej obě jména.","err"); return; }
+  setBusy(true); status("Hledám osobnosti…");
+  try{
+    if(a!==lastA){ const ca=await resolve(a); buildPicker($("#pickA"),$("#hintA"),ca); lastA=a;
+      if(!ca.length){ status("Nenašel jsem osobu „"+a+"“.","err"); setBusy(false); return; } }
+    if(b!==lastB){ const cb=await resolve(b); buildPicker($("#pickB"),$("#hintB"),cb); lastB=b;
+      if(!cb.length){ status("Nenašel jsem osobu „"+b+"“.","err"); setBusy(false); return; } }
+    await runMatch();
+  }catch(e){ const msg=String(e.message||e);
+    const net=/Failed to fetch|NetworkError|TypeError/i.test(msg);
+    status(msg+(net?" — spusť soubor lokálně v prohlížeči (Chrome).":""),"err"); }
+  finally{ setBusy(false); }
+}
+
+async function runMatch(){
+  const key=$("#key").value.trim(); if(!key){ status("Zadej API klíč.","err"); return; }
+  const qa=$("#pickA").value || ($("#pickA")._c&&$("#pickA")._c[0]?.qid);
+  const qb=$("#pickB").value || ($("#pickB")._c&&$("#pickB")._c[0]?.qid);
+  if(!qa||!qb) return;
+  const A=rowsByQid[qa], B=rowsByQid[qb];
+  setBusy(true); status("Ptám se modelů… (panel × 2 osoby)");
+  try{
+    const seen=new Set();
+    const tick=(m,ok)=>{ seen.add(m); status("Ptám se modelů… "+seen.size+"/"+(PANEL.length*2)); };
+    const [ra,rb]=await Promise.all([scorePerson(A,key,tick), scorePerson(B,key,tick)]);
+    if(!ra.avail.length && !rb.avail.length){
+      renderPanel([...ra.results,...rb.results]);
+      const firstErr=[...ra.results,...rb.results].find(r=>r.err)?.err||"";
+      let hint="";
+      if(/401|403|No auth|invalid|credential/i.test(firstErr)) hint=" Klíč nejspíš neplatí nebo nemá kredit.";
+      else if(/Failed to fetch|NetworkError|TypeError/i.test(firstErr)) hint=" Volání je blokované — spusť soubor lokálně v prohlížeči (ne v náhledu).";
+      else if(/404|400|not a valid|no endpoints|model/i.test(firstErr)) hint=" Slugy modelů nejsou aktuální — uprav blok PANEL podle openrouter.ai/models.";
+      status("Žádný model neodpověděl."+hint+(firstErr?" — "+firstErr.slice(0,140):""),"err");
+      return;
+    }
+    renderFighter("A",A,ra); renderFighter("B",B,rb);
+    const cardA=$("#cardA"), cardB=$("#cardB");
+    cardA.classList.remove("win","lose"); cardB.classList.remove("win","lose");
+    const d=Math.abs(ra.score-rb.score);
+    let v;
+    if(d===0){ v=`Nerozhodně — oba <b>${ra.score}/10</b>.`; }
+    else{
+      const aWin=ra.score>rb.score, win=aWin?A:B, ws=aWin?ra.score:rb.score, ls=aWin?rb.score:ra.score;
+      (aWin?cardA:cardB).classList.add("win"); (aWin?cardB:cardA).classList.add("lose");
+      const close = d===1 ? " (těsně)" : "";
+      v=`Modely líp znají <b class="w">${esc(win.name)}</b>${close} — <b>${ws}/10</b> : <b>${ls}/10</b>.`;
+    }
+    $("#verdict").innerHTML=v;
+    renderPanel([...ra.results,...rb.results]);
+    $("#arena").classList.remove("hide");
+    status("");
+  }catch(e){ status(String(e.message||e),"err"); }
+  finally{ setBusy(false); }
+}
+
+function tierRow(cls,label,results){
+  const dots=results.map(r=>`<span class="dot ${r.available&&r.recog>0?'on':''}" title="${esc(r.model)}: ${r.available?('rozpoznání '+r.recog):'nedostupný'}"></span>`).join(" ");
+  return `<div class="trow ${cls}"><span class="tl">${label}</span>${dots}</div>`;
+}
+function renderFighter(side,row,res){
+  $("#fn"+side).innerHTML=`<a href="${row.url}" target="_blank" rel="noopener">${esc(row.name)}</a>`;
+  $("#fm"+side).textContent=row.desc||"";
+  $("#fs"+side).innerHTML=res.score+'<span class="outof">/10</span>';
+  const knew=res.avail.filter(r=>r.recog>0).length;
+  $("#kn"+side).textContent=`Zná ho ${knew} z ${res.avail.length} modelů`;
+  $("#ti"+side).innerHTML =
+    tierRow("s1","strop",res.results.filter(r=>r.tier==="strop"))+
+    tierRow("s2","střed",res.results.filter(r=>r.tier==="střed"))+
+    tierRow("s3","sklep",res.results.filter(r=>r.tier==="sklep"));
+  $("#cap"+side).style.display = res.capped ? "block":"none";
+  const best=res.results.find(r=>r.available&&r.recog>0&&(r.prof||r.knownfor));
+  $("#sa"+side).innerHTML = best
+    ? `<b>${esc(best.model.split("/").pop())}:</b> ${esc([best.prof,best.knownfor].filter(Boolean).join(" — "))||"—"}`
+    : "";
+}
+function renderPanel(all){
+  const byModel={}; all.forEach(r=>{ byModel[r.model]=byModel[r.model]||r; });
+  const el=$("#panelinfo"); el.style.display="block";
+  el.innerHTML="panel: "+PANEL.map(m=>{
+    const r=byModel[m.model];
+    const ok=r&&r.available;
+    return `<span class="m ${ok?'ok':'no'}" title="${m.tier}">${esc(m.model.split("/").pop())}</span>`;
+  }).join("");
+}
+
+function esc(s){return (s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
+function status(t,cls){ const el=$("#status"); el.textContent=t||""; el.className="status"+(cls?" "+cls:""); }
+function setBusy(b){ $("#go").disabled=b; $("#go").textContent=b?"Souboj…":"Utkat se"; }
+</script>
+</body>
+</html>

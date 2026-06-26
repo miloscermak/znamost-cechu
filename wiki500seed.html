@@ -1,0 +1,559 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Index známosti · žijící Češi</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F4F5F7; --panel:#FFFFFF; --ink:#14171C; --muted:#6C7480; --faint:#9AA1AC;
+    --line:#E4E7EC; --line2:#EEF0F3;
+    --global:#4338CA;      /* jazyky Wikipedie — globální osa */
+    --durable:#0E8C7A;     /* autoritní záznamy — trvalá osa  */
+    --domestic:#DB6D28;    /* čtenost — živá osa              */
+    --ink-btn:#191D24;
+    --bad:#C0392B;
+    --r:10px;
+    --disp:"Space Grotesk",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    --mono:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    background:var(--bg); color:var(--ink);
+    font-family:var(--disp); font-size:15px; line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1180px; margin:0 auto; padding:28px 22px 80px}
+  a{color:var(--global); text-decoration:none}
+  a:hover{text-decoration:underline}
+
+  /* ---- header ---- */
+  header{margin-bottom:22px}
+  .eyebrow{font-family:var(--mono); font-size:11.5px; letter-spacing:.16em; text-transform:uppercase;
+    color:var(--muted); display:flex; gap:10px; align-items:center}
+  .eyebrow .dot{width:6px;height:6px;border-radius:50%;
+    background:linear-gradient(90deg,var(--global),var(--domestic))}
+  h1{font-size:clamp(28px,4.4vw,46px); font-weight:700; letter-spacing:-.02em;
+    margin:.28em 0 .15em; line-height:1.04}
+  h1 em{font-style:normal; background:linear-gradient(90deg,var(--global),var(--domestic));
+    -webkit-background-clip:text; background-clip:text; color:transparent}
+  .lede{max-width:62ch; color:#3A4049; font-size:15.5px}
+  .lede b{font-weight:600}
+
+  /* ---- panel ---- */
+  .panel{background:var(--panel); border:1px solid var(--line); border-radius:var(--r);
+    padding:18px 20px; margin-top:20px}
+  .panel h2{font-size:12px; font-family:var(--mono); letter-spacing:.12em; text-transform:uppercase;
+    color:var(--muted); margin:0 0 16px; font-weight:600}
+
+  .controls{display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:18px 24px; align-items:end}
+  .ctl label{display:block; font-size:12.5px; color:var(--muted); margin-bottom:7px; font-weight:500}
+  .ctl .val{font-family:var(--mono); color:var(--ink); font-weight:600}
+  input[type=range]{width:100%; accent-color:var(--global); margin:0}
+  input[type=number]{width:100%; font-family:var(--mono); font-size:14px; padding:8px 10px;
+    border:1px solid var(--line); border-radius:7px; background:var(--bg); color:var(--ink)}
+  .switch{display:flex; align-items:center; gap:9px; cursor:pointer; user-select:none; font-size:13.5px}
+  .switch input{appearance:none; width:38px; height:22px; border-radius:11px; background:var(--line);
+    position:relative; cursor:pointer; transition:background .15s; flex:none}
+  .switch input:checked{background:var(--global)}
+  .switch input::after{content:""; position:absolute; top:2px; left:2px; width:18px; height:18px;
+    border-radius:50%; background:#fff; transition:transform .15s; box-shadow:0 1px 2px rgba(0,0,0,.2)}
+  .switch input:checked::after{transform:translateX(16px)}
+
+  /* axis weight sliders */
+  .axes>label{margin-bottom:11px}
+  .axis{display:flex; align-items:center; gap:10px; margin-bottom:8px}
+  .axis .ax{font-family:var(--mono); font-size:11px; letter-spacing:.02em; width:60px; flex:none; font-weight:600}
+  .axis .ax.g{color:var(--global)} .axis .ax.u{color:var(--durable)} .axis .ax.d{color:var(--domestic)}
+  .axis input[type=range]{flex:1; min-width:60px}
+  .axis .axpct{font-family:var(--mono); font-size:11px; color:var(--ink); width:36px; text-align:right; flex:none}
+  #wG{accent-color:var(--global)} #wDur{accent-color:var(--durable)} #wL{accent-color:var(--domestic)} #spike{accent-color:var(--domestic)}
+
+  .runrow{display:flex; gap:12px; align-items:center; margin-top:20px; flex-wrap:wrap}
+  button.run{font-family:var(--disp); font-weight:600; font-size:15px; color:#fff; background:var(--ink-btn);
+    border:0; border-radius:8px; padding:11px 22px; cursor:pointer; transition:opacity .15s}
+  button.run:hover{opacity:.88}
+  button.run:disabled{opacity:.4; cursor:default}
+  button.ghost{font-family:var(--disp); font-weight:500; font-size:14px; color:var(--ink); background:transparent;
+    border:1px solid var(--line); border-radius:8px; padding:10px 16px; cursor:pointer}
+  button.ghost:hover{border-color:var(--ink)}
+  button.ghost:disabled{opacity:.4; cursor:default}
+
+  /* ---- progress ---- */
+  .prog{margin-top:18px; font-family:var(--mono); font-size:13px; color:var(--muted); display:none}
+  .prog.show{display:block}
+  .ptrack{height:8px; background:var(--line2); border-radius:4px; overflow:hidden; margin:9px 0}
+  .pfill{height:100%; width:0; background:linear-gradient(90deg,var(--global),var(--domestic)); transition:width .2s}
+  .perr{color:var(--bad); font-family:var(--disp); font-size:14px; line-height:1.55}
+  .perr b{font-weight:600}
+
+  /* ---- results meta ---- */
+  .resbar{display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin:26px 0 14px}
+  .resbar .count{font-family:var(--mono); font-size:13px; color:var(--muted)}
+  .resbar .count b{color:var(--ink); font-weight:600}
+  .search{flex:1; min-width:170px; max-width:280px; font-family:var(--disp); font-size:14px;
+    padding:9px 12px; border:1px solid var(--line); border-radius:8px; background:var(--panel)}
+  .chips{display:flex; gap:7px; flex-wrap:wrap; margin-bottom:16px}
+  .chip{font-family:var(--mono); font-size:11.5px; letter-spacing:.03em; padding:5px 11px; border-radius:20px;
+    border:1px solid var(--line); background:var(--panel); color:var(--muted); cursor:pointer}
+  .chip .n{opacity:.6; margin-left:5px}
+  .chip.on{background:var(--ink); color:#fff; border-color:var(--ink)}
+  .chip.on .n{opacity:.75}
+
+  /* ---- legend ---- */
+  .legend{display:flex; gap:18px; font-size:12.5px; color:var(--muted); margin-bottom:10px; flex-wrap:wrap}
+  .legend i{width:11px; height:11px; border-radius:3px; display:inline-block; margin-right:6px; vertical-align:-1px}
+  .legend .g{background:var(--global)} .legend .u{background:var(--durable)} .legend .d{background:var(--domestic)}
+
+  /* ---- table ---- */
+  .tablewrap{background:var(--panel); border:1px solid var(--line); border-radius:var(--r); overflow:hidden}
+  table{width:100%; border-collapse:collapse}
+  th,td{text-align:left; padding:11px 14px; border-bottom:1px solid var(--line2); vertical-align:middle}
+  th{font-family:var(--mono); font-size:11px; letter-spacing:.07em; text-transform:uppercase; color:var(--muted);
+    font-weight:600; cursor:pointer; user-select:none; white-space:nowrap; background:var(--panel); position:sticky; top:0; z-index:1}
+  th.sortable:hover{color:var(--ink)}
+  th .arr{opacity:.5; font-size:10px}
+  tr:last-child td{border-bottom:0}
+  tbody tr:hover{background:#FAFBFC}
+  td.rank{font-family:var(--mono); color:var(--faint); font-size:13px; width:46px}
+  td.name{font-weight:500}
+  td.name .yr{font-family:var(--mono); font-size:11.5px; color:var(--faint); margin-left:7px; font-weight:400}
+  td.name .desc{display:block; font-size:12px; color:var(--muted); font-weight:400; margin-top:1px; max-width:34ch;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .cat{font-family:var(--mono); font-size:11px; padding:3px 8px; border-radius:5px; background:var(--line2); color:#4A515B; white-space:nowrap}
+  .cat.manual{background:#FCEEE3; color:#9A551F}
+  td.num{font-family:var(--mono); font-size:13px; text-align:right; color:#3A4049; white-space:nowrap}
+  td.score{width:210px}
+  .scorerow{display:flex; align-items:center; gap:9px}
+  .scoreval{font-family:var(--mono); font-size:13px; font-weight:600; width:40px; text-align:right; color:var(--ink)}
+  .mix{flex:1; height:9px; border-radius:5px; background:var(--line2); overflow:hidden; display:flex}
+  .mix .g{background:var(--global); height:100%}
+  .mix .u{background:var(--durable); height:100%}
+  .mix .d{background:var(--domestic); height:100%}
+  .spike{font-family:var(--mono); font-size:12px; margin-left:2px; cursor:default; flex:none}
+
+  .empty{padding:46px 20px; text-align:center; color:var(--muted); font-size:14px}
+  footer{margin-top:30px; font-size:12.5px; color:var(--faint); line-height:1.65; max-width:74ch}
+  footer b{color:var(--muted); font-weight:600}
+  .note{font-size:12.5px; color:var(--muted); margin-top:6px}
+
+  @media (max-width:680px){
+    td.name .desc{display:none} td.score{width:120px} th.hide,td.hide{display:none}
+  }
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow"><span class="dot"></span> Index známosti · žijící Češi · v0</div>
+    <h1>Kdo je v Česku doopravdy <em>slavný</em>?</h1>
+    <p class="lede">Nástroj měří známost žijících českých osobností výhradně z otevřených dat — bez jakéhokoli hlasování a bez umělé inteligence. Skládá ji ze tří nezávislých os: <b style="color:var(--global)">globální stopy</b> (kolik jazyků Wikipedie o člověku píše), <b style="color:var(--durable)">trvalé stopy</b> (hustota institucionálních záznamů — knihovní a oborové autority, odolné vůči skandálu) a <b style="color:var(--domestic)">živé pozornosti</b> (čtenost na české Wikipedii). Tím odlišuje slávu trvalou od slávy nárazové — a jednorázové špičky (kdo zrovna zakopl na pódiu) umí cíleně srazit.</p>
+  </header>
+
+  <div class="panel">
+    <h2>Nastavení</h2>
+    <div class="controls">
+      <div class="ctl">
+        <label>Kandidátů na obor <span class="val" id="poolVal">80</span></label>
+        <input type="range" id="pool" min="50" max="150" step="10" value="80">
+        <div class="note">Z každého oboru se vezme tolik nejznámějších; pak se slévají.</div>
+      </div>
+      <div class="ctl axes">
+        <label>Váhy os známosti</label>
+        <div class="axis"><span class="ax g">Globální</span><input type="range" id="wG" min="0" max="100" step="5" value="35"><span class="axpct" id="wGpct">35%</span></div>
+        <div class="axis"><span class="ax u">Trvalá</span><input type="range" id="wDur" min="0" max="100" step="5" value="40"><span class="axpct" id="wDurpct">40%</span></div>
+        <div class="axis"><span class="ax d">Živá</span><input type="range" id="wL" min="0" max="100" step="5" value="25"><span class="axpct" id="wLpct">25%</span></div>
+      </div>
+      <div class="ctl">
+        <label>Potlačit nárazovou slávu <span class="val" id="spikeVal">30</span>%</label>
+        <input type="range" id="spike" min="0" max="70" step="5" value="30">
+        <div class="note">Sráží ty, jejichž čtenost je hlavně jednorázová špička.</div>
+      </div>
+      <div class="ctl">
+        <label>Délka žebříčku</label>
+        <input type="number" id="target" min="50" max="1000" step="50" value="500">
+        <div class="note">Kolik jmen v hlavním žebříčku. Obory mají vlastní hloubku.</div>
+      </div>
+      <div class="ctl">
+        <label>Narození od roku</label>
+        <input type="number" id="bornFrom" min="1900" max="2010" step="1" value="1935">
+      </div>
+    </div>
+    <div class="runrow">
+      <button class="run" id="run">Sestavit žebříček</button>
+      <button class="ghost" id="csv" disabled>Stáhnout CSV</button>
+      <span class="note" id="hint">Spuštění stáhne data z Wikidat a Wikimedie. Trvá ~1–2 min.</span>
+    </div>
+    <div class="prog" id="prog">
+      <div id="pmsg">—</div>
+      <div class="ptrack"><div class="pfill" id="pfill"></div></div>
+    </div>
+  </div>
+
+  <div id="results" style="display:none">
+    <div class="resbar">
+      <div class="count">Zobrazeno <b id="shownCount">0</b> z <b id="totalCount">0</b> jmen</div>
+      <input class="search" id="search" placeholder="Hledat jméno…">
+    </div>
+    <div class="legend">
+      <span><i class="g"></i>globální (jazyky Wikipedie)</span>
+      <span><i class="u"></i>trvalá (institucionální záznamy)</span>
+      <span><i class="d"></i>živá (čtenost cs.wikipedia)</span>
+      <span>⚡ = nárazová pozornost · délka pruhu = skóre</span>
+    </div>
+    <div class="chips" id="chips"></div>
+    <div class="tablewrap">
+      <table>
+        <thead><tr id="head"></tr></thead>
+        <tbody id="body"></tbody>
+      </table>
+      <div class="empty" id="empty" style="display:none">Nic neodpovídá filtru.</div>
+    </div>
+  </div>
+
+  <footer id="foot" style="display:none">
+    <p><b>Tři osy známosti.</b> <i>Globální</i> = počet jazykových verzí Wikipedie. <i>Trvalá</i> = hustota institucionálních autoritních záznamů (VIAF, GND, ISNI, ORCID, knihovní a oborové katalogy, filmové databáze) doplněná počtem strukturovaných tvrzení na Wikidatech; ty přiděluje instituce, ne dav, takže je skandál nehne. <i>Živá</i> = čtenost na české Wikipedii, počítaná jako <b>medián</b> měsíců za 24 měsíců (ne součet), aby jednorázové špičky nepřebily běžný zájem.</p>
+    <p><b>Jak vzniká skóre.</b> Každá osa se zlogaritmuje (rozdělení má pár superstars a dlouhý ocas) a převede na percentil v rámci vzorku. Skóre je vážený průměr přeškálovaný na 0–1000; váhy si měníš naživo. Pruh u jména ukazuje, z čeho se to skóre skládá — jestli je člověk velký encyklopedicky ve světě, institucionálně doložený, nebo hlavně právě teď čtený. <b>Spike-index</b> (poměr špička/medián čtenosti) označí nárazovou slávu vlajkou ⚡; posuvníkem „potlačit nárazovou slávu" je srazíš dolů.</p>
+    <p><b>Žebříček a obory.</b> Hlavní žebříček je jeden poctivý seznam podle skóre — bez kvót, bez vyrovnávání oborů. Kliknutím na obor se přepneš do jeho vlastního žebříčku (pořadí je pak v rámci oboru), takže vidíš třeba „nejznámější vědce" i tehdy, když se do hlavní pětistovky nevešli. Obory tu nejsou soudce, ale lupa: když je někdo na Wikidatech zařazený sporně, je to jen jeden řádek ve filtru, ne deformace celého žebříčku.</p>
+    <p><b>Odkud se obory berou.</b> Každý obor se hledá zvlášť — dotazem na příslušné profese na Wikidatech (a jejich podtypy), aby i domácí obory jako žurnalistika nebo byznys měly z čeho čerpat. Kdo má víc profesí, padne do oboru s vyšší prioritou. Diskrétní zaškatulkování mnohostranně slavných lidí ale nikdy nebude úplně čisté — to je povaha dat, ne chyba; proto je obor jen filtr.</p>
+    <p><b>Co to vědomě míjí.</b> Lidé bez článku na české Wikipedii do hry nevstoupí vůbec — typicky část influencerů. Trvalá osa nadržuje etablovaným profesím (autoři, vědci, vážná hudba). Filtr „narození od" odřízne osobnosti, kterým ve Wikidatech jen chybí datum úmrtí; pár skutečných stoletých s tím odejde. To je v rámci „plus mínus" záměr.</p>
+  </footer>
+</div>
+
+<script>
+"use strict";
+const $=s=>document.querySelector(s);
+const WDQS="https://query.wikidata.org/sparql";
+const PV="https://wikimedia.org/api/rest_v1/metrics/pageviews/per-article/cs.wikipedia/all-access/all-agents/";
+
+/* ---------- kategorie: profesní QID na Wikidatech, řazené podle priority při více profesích ---------- */
+/* (kdo má víc profesí, spadne do prvního oboru zleva, který ho nárokuje) */
+const CAT_SEED=[
+  ["Politika",                      ["Q82955","Q193391"]],                                  // politik, diplomat
+  ["Sport",                         ["Q2066131"]],                                          // sportovec (vč. podtypů přes P279*)
+  ["Věda",                          ["Q901","Q1622272","Q201788","Q4964182","Q188094","Q39631","Q185351"]], // vědec, vysokoškol. pedagog, historik, filozof, ekonom, lékař, právník
+  ["Hudba",                         ["Q639669","Q36834","Q177220"]],                         // hudebník, skladatel, zpěvák
+  ["Film/TV/divadlo",               ["Q33999","Q2526255","Q947873","Q245068","Q3282637"]],  // herec, režisér, moderátor, komik, producent
+  ["Žurnalistika a sociální média", ["Q1930187","Q1394144","Q17125263"]],                   // novinář, bloger, youtuber — záměrně nízko, ať nesbírá baviče
+  ["Literatura",                    ["Q36180","Q49757","Q333634"]],                          // spisovatel, básník, překladatel
+  ["Výtvarné umění a design",       ["Q1028181","Q1281618","Q42973","Q33231","Q3391743","Q5322166"]], // malíř, sochař, architekt, fotograf, výtvarník, designér
+  ["Byznys",                        ["Q131524","Q43845","Q484876"]],                         // podnikatel, byznysmen, CEO
+];
+const CAT_ORDER=[...CAT_SEED.map(c=>c[0]),"Ostatní"];
+
+function mkPerson(b,cat){
+  const title=decodeURIComponent(b.article.value.split("/wiki/").pop());
+  return {qid:b.person.value.split("/").pop(), title, cat,
+    name:title.replace(/_/g," "), desc:"", occ:"",
+    sitelinks:+b.linkcount.value,
+    idcount:+(b.idcount?.value||0),
+    stcount:+(b.stcount?.value||0),
+    birth:b.birth?+b.birth.value:null,
+    url:b.person.value, pvMedian:0, pvPeak:0, spike:1};
+}
+
+/* ---------- stav ---------- */
+let DATA=[];                 // finální seznam
+let SORT={key:"composite",dir:-1};
+let activeCat=null, q="";
+
+/* ---------- UI vazby ---------- */
+$("#pool").oninput=e=>$("#poolVal").textContent=e.target.value;
+function getWeights(){
+  let g=+$("#wG").value, d=+$("#wDur").value, l=+$("#wL").value;
+  const s=g+d+l||1;
+  return {g:g/s, dur:d/s, l:l/s, penalty:(+$("#spike").value)/100};
+}
+function refreshAxPct(){
+  const W=getWeights();
+  $("#wGpct").textContent=Math.round(W.g*100)+"%";
+  $("#wDurpct").textContent=Math.round(W.dur*100)+"%";
+  $("#wLpct").textContent=Math.round(W.l*100)+"%";
+  $("#spikeVal").textContent=$("#spike").value;
+}
+["wG","wDur","wL","spike"].forEach(id=>$("#"+id).oninput=()=>{
+  refreshAxPct(); if(DATA.length){recompute();render();}
+});
+$("#target").oninput=()=>{ if(DATA.length){buildChips();render();} };
+refreshAxPct();
+$("#run").onclick=run;
+$("#csv").onclick=exportCSV;
+$("#search").oninput=e=>{q=e.target.value.trim().toLowerCase();render();};
+
+/* ---------- SPARQL ---------- */
+async function sparql(query){
+  // prostý GET bez vlastních hlaviček => žádný CORS preflight
+  const url=WDQS+"?format=json&query="+encodeURIComponent(query);
+  let r;
+  try{ r=await fetch(url); }
+  catch(e){ throw new Error("Nepodařilo se spojit s Wikidata (síť nebo CORS)."); }
+  if(!r.ok){
+    if(r.status===429) throw new Error("Wikidata hlásí příliš mnoho dotazů (429). Počkej chvíli a zkus znovu.");
+    throw new Error("Wikidata vrátila chybu "+r.status+" — dotaz nejspíš vypršel. Zkus menší pool.");
+  }
+  return (await r.json()).results.bindings;
+}
+
+// rychlý pool: jen řazení podle počtu jazyků, bez label service (jinak hrozí timeout)
+const poolQuery=(from,limit)=>`
+SELECT ?person ?linkcount ?idcount ?stcount ?birth ?article WHERE {
+  ?person wdt:P31 wd:Q5 ; wdt:P27 wd:Q213 ;
+          wikibase:sitelinks ?linkcount ;
+          wikibase:identifiers ?idcount ;
+          wikibase:statements ?stcount ;
+          wdt:P569 ?bd .
+  FILTER NOT EXISTS { ?person wdt:P570 [] }
+  BIND(YEAR(?bd) AS ?birth) FILTER(?birth >= ${from})
+  ?article schema:about ?person ; schema:isPartOf <https://cs.wikipedia.org/> .
+} ORDER BY DESC(?linkcount) LIMIT ${limit}`;
+
+// lehká dekorace: jméno, popis, profese jen pro vybrané QID (přes VALUES, rychlé)
+const decorateQuery=ids=>`
+SELECT ?person ?personLabel ?personDescription (GROUP_CONCAT(DISTINCT ?o;separator="; ") AS ?occs) WHERE {
+  VALUES ?person { ${ids.map(id=>"wd:"+id).join(" ")} }
+  OPTIONAL { ?person wdt:P106 ?occE . ?occE rdfs:label ?o . FILTER(LANG(?o)="cs") }
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "cs,en". }
+} GROUP BY ?person ?personLabel ?personDescription`;
+
+// dotaz na jeden obor: žijící Češi s danou profesí (vč. podtypů přes P279*), řazení podle jazyků
+const catQuery=(roots,from,limit)=>`
+SELECT DISTINCT ?person ?linkcount ?idcount ?stcount ?birth ?article WHERE {
+  VALUES ?root { ${roots.map(q=>"wd:"+q).join(" ")} }
+  ?person wdt:P27 wd:Q213 ; wdt:P31 wd:Q5 ; wdt:P106 ?occ .
+  ?occ wdt:P279* ?root .
+  ?person wikibase:sitelinks ?linkcount ;
+          wikibase:identifiers ?idcount ;
+          wikibase:statements ?stcount ;
+          wdt:P569 ?bd .
+  FILTER NOT EXISTS { ?person wdt:P570 [] }
+  BIND(YEAR(?bd) AS ?birth) FILTER(?birth >= ${from})
+  ?article schema:about ?person ; schema:isPartOf <https://cs.wikipedia.org/> .
+} ORDER BY DESC(?linkcount) LIMIT ${limit}`;
+
+/* ---------- pageviews ---------- */
+function pvRange(){            // 24měsíční okno
+  const now=new Date();
+  const end=new Date(Date.UTC(now.getUTCFullYear(),now.getUTCMonth(),1));
+  const start=new Date(Date.UTC(end.getUTCFullYear()-2,end.getUTCMonth(),1));
+  const fmt=d=>d.getUTCFullYear()+String(d.getUTCMonth()+1).padStart(2,"0")+"01";
+  return [fmt(start),fmt(end)];
+}
+async function fetchPV(title,from,to){
+  const url=PV+encodeURIComponent(title)+"/monthly/"+from+"/"+to;
+  try{
+    const r=await fetch(url);
+    if(!r.ok) return {median:0,peak:0};
+    const j=await r.json();
+    const vals=(j.items||[]).map(it=>it.views||0);
+    if(!vals.length) return {median:0,peak:0};
+    const s=[...vals].sort((a,b)=>a-b), m=Math.floor(s.length/2);
+    const median=s.length%2? s[m] : Math.round((s[m-1]+s[m])/2);
+    return {median, peak:Math.max(...vals)};
+  }catch(e){ return {median:0,peak:0}; }
+}
+async function pool(items,worker,onTick){
+  let i=0,done=0; const N=items.length;
+  async function next(){ while(i<N){ const k=i++; await worker(items[k]); onTick(++done,N); } }
+  await Promise.all(Array.from({length:Math.min(worker._c||12,N)},next));
+}
+
+/* ---------- hlavní běh ---------- */
+async function run(){
+  const from=+$("#bornFrom").value||1935;
+  const perCat=+$("#pool").value||80;
+  setBusy(true); showProg();
+  try{
+    const byId={};
+    let ci=0; const NC=CAT_SEED.length;
+    for(const [cat,roots] of CAT_SEED){
+      pmsg("Hledám obor: "+cat+"…", 3+ci/NC*28);
+      try{
+        const rows=await sparql(catQuery(roots,from,perCat));
+        rows.forEach(b=>{ const qid=b.person.value.split("/").pop();
+          if(!byId[qid]) byId[qid]=mkPerson(b,cat); });   // první obor v pořadí nárokuje
+      }catch(e){ /* obor přeskočen (timeout), pokračuj dál */ }
+      ci++;
+    }
+    pmsg("Doplňuju ostatní obory…",32);
+    try{
+      const rows=await sparql(poolQuery(from, Math.round(perCat*1.6)));
+      rows.forEach(b=>{ const qid=b.person.value.split("/").pop();
+        if(!byId[qid]) byId[qid]=mkPerson(b,"Ostatní"); });
+    }catch(e){ /* doplnění je nepovinné */ }
+
+    let people=Object.values(byId);
+    if(!people.length){ hideProg(); return progErr("Nic se nenašlo. Zkus nižší rok narození nebo zkontroluj síť."); }
+
+    pmsg("Stahuju jména…",34);
+    try{
+      const m={}; people.forEach(p=>m[p.qid]=p);
+      const chunks=[]; for(let i=0;i<people.length;i+=150) chunks.push(people.slice(i,i+150));
+      let dc=0;
+      for(const ch of chunks){
+        const bind=await sparql(decorateQuery(ch.map(p=>p.qid)));
+        bind.forEach(b=>{
+          const p=m[b.person.value.split("/").pop()]; if(!p) return;
+          if(b.personLabel?.value) p.name=b.personLabel.value;
+          p.desc=b.personDescription?.value||"";
+          p.occ=b.occs?.value||"";
+        });
+        dc++; pmsg("Stahuju jména… "+dc+"/"+chunks.length, 34+dc/chunks.length*4);
+      }
+    }catch(e){ /* dekorace je nepovinná, jméno zůstane z názvu článku */ }
+
+    const [from2,to2]=pvRange();
+    pmsg("Stahuju čtenost české Wikipedie… 0 / "+people.length,38);
+    const t0=Date.now();
+    const w=async p=>{ const x=await fetchPV(p.title,from2,to2);
+      p.pvMedian=x.median; p.pvPeak=x.peak; p.spike=(x.peak+1)/(x.median+1); };
+    w._c=12;
+    await pool(people,w,(done,n)=>{
+      const frac=done/n; const el=(Date.now()-t0)/1000; const eta=done? Math.round(el/done*(n-done)):0;
+      pmsg(`Stahuju čtenost… ${done} / ${n}  ·  zbývá ~${eta}s`, 38+frac*58);
+    });
+
+    DATA=people;
+    recompute();
+    pmsg("Hotovo.",100);
+    setTimeout(hideProg,600);
+    buildChips(); buildHead(); render();
+    $("#results").style.display="block"; $("#foot").style.display="block";
+    $("#csv").disabled=false;
+  }catch(err){
+    progErr(err);
+  }finally{ setBusy(false); }
+}
+
+/* ---------- skóre ---------- */
+function pctRanks(vals){
+  // percentil = podíl hodnot menších nebo rovných (0..1)
+  const idx=vals.map((v,i)=>[v,i]).sort((a,b)=>a[0]-b[0]);
+  const r=new Array(vals.length); const n=vals.length;
+  for(let k=0;k<n;k++){ r[idx[k][1]]=n>1? k/(n-1):1; }
+  return r;
+}
+function recompute(){
+  const W=getWeights();
+  const pG =pctRanks(DATA.map(p=>Math.log10(p.sitelinks+1)));
+  const pID=pctRanks(DATA.map(p=>Math.log10(p.idcount+1)));
+  const pST=pctRanks(DATA.map(p=>Math.log10(p.stcount+1)));
+  const pL =pctRanks(DATA.map(p=>Math.log10(p.pvMedian+1)));
+  const pSP=pctRanks(DATA.map(p=>Math.log10(Math.max(1,p.spike))));
+  DATA.forEach((p,i)=>{
+    p.pG=pG[i];
+    p.pDur=0.75*pID[i]+0.25*pST[i];   // trvalá osa: autoritní ID primárně, tvrzení doplněk
+    p.pL=pL[i];
+    p.spikiness=pSP[i];
+    const factor=1-W.penalty*p.spikiness;
+    p.gPart=W.g*p.pG*factor;
+    p.durPart=W.dur*p.pDur*factor;
+    p.lPart=W.l*p.pL*factor;
+    p.composite=Math.round((p.gPart+p.durPart+p.lPart)*1000);
+  });
+  // poctivé pořadí podle skóre + pořadí v rámci oboru
+  const ranked=[...DATA].sort((a,b)=>b.composite-a.composite);
+  ranked.forEach((p,i)=>p.rankAll=i+1);
+  const byCat={};
+  ranked.forEach(p=>{ (byCat[p.cat]=byCat[p.cat]||[]).push(p); });
+  Object.values(byCat).forEach(arr=>arr.forEach((p,i)=>p.rankCat=i+1));
+  DATA._ranked=ranked;
+}
+
+/* ---------- render ---------- */
+const COLS=[
+  {key:"rank",label:"#",cls:"rank",sortable:false},
+  {key:"name",label:"Jméno",cls:"name",sortable:true},
+  {key:"cat",label:"Obor",cls:"",sortable:true,hide:true},
+  {key:"sitelinks",label:"Jazyků",cls:"num",sortable:true,hide:true},
+  {key:"idcount",label:"Autority",cls:"num",sortable:true,hide:true},
+  {key:"pvMedian",label:"Čtenost/měs",cls:"num",sortable:true,hide:true},
+  {key:"composite",label:"Skóre",cls:"score",sortable:true},
+];
+function buildHead(){
+  $("#head").innerHTML=COLS.map(c=>{
+    const arr=SORT.key===c.key?`<span class="arr">${SORT.dir<0?"▼":"▲"}</span>`:"";
+    return `<th class="${c.sortable?'sortable':''} ${c.hide?'hide':''}" data-k="${c.key}">${c.label} ${arr}</th>`;
+  }).join("");
+  $("#head").querySelectorAll("th.sortable").forEach(th=>th.onclick=()=>{
+    const k=th.dataset.k;
+    if(SORT.key===k) SORT.dir*=-1; else {SORT={key:k,dir:k==="name"||k==="cat"?1:-1};}
+    buildHead(); render();
+  });
+}
+function buildChips(){
+  const counts={}; DATA._ranked.forEach(p=>counts[p.cat]=(counts[p.cat]||0)+1);
+  const cats=CAT_ORDER.filter(c=>counts[c]);
+  const target=+$("#target").value||500;
+  const allCount=Math.min(target,DATA._ranked.length);
+  $("#chips").innerHTML=`<span class="chip ${activeCat?'':'on'}" data-c="">Žebříček <span class="n">${allCount}</span></span>`+
+    cats.map(c=>`<span class="chip ${activeCat===c?'on':''}" data-c="${c}">${c} <span class="n">${counts[c]}</span></span>`).join("");
+  $("#chips").querySelectorAll(".chip").forEach(ch=>ch.onclick=()=>{activeCat=ch.dataset.c||null; buildChips(); render();});
+}
+function render(){
+  const target=+$("#target").value||500;
+  // bez filtru = poctivý top podle skóre; s filtrem = celý obor seřazený podle skóre
+  const base = activeCat ? DATA._ranked.filter(p=>p.cat===activeCat) : DATA._ranked.slice(0,target);
+  let r=[...base];
+  if(q) r=r.filter(p=>p.name.toLowerCase().includes(q));
+  const k=SORT.key;
+  r.sort((a,b)=>{ let x=a[k],y=b[k];
+    if(k==="name"||k==="cat"){return SORT.dir*String(x).localeCompare(String(y),"cs");}
+    return SORT.dir*((x||0)-(y||0)); });
+  const maxC=Math.max(1,...DATA._ranked.map(p=>p.composite));
+  $("#shownCount").textContent=r.length; $("#totalCount").textContent=base.length;
+  $("#empty").style.display=r.length?"none":"block";
+  $("#body").innerHTML=r.map(p=>{
+    const rk = activeCat ? p.rankCat : p.rankAll;
+    const gw=Math.round(p.gPart*1000/maxC*100), uw=Math.round(p.durPart*1000/maxC*100), dw=Math.round(p.lPart*1000/maxC*100);
+    const spikeFlag = p.spike>=4 ? `<span class="spike" title="nárazová pozornost: špička ${Math.round(p.spike)}× medián">⚡</span>` : "";
+    return `<tr>
+      <td class="rank">${rk}</td>
+      <td class="name"><a href="https://cs.wikipedia.org/wiki/${encodeURIComponent(p.title)}" target="_blank" rel="noopener">${esc(p.name)}</a>${p.birth?`<span class="yr">${p.birth}</span>`:""}
+        ${p.desc?`<span class="desc">${esc(p.desc)}</span>`:""}</td>
+      <td class="hide"><span class="cat">${p.cat}</span></td>
+      <td class="num hide">${p.sitelinks}</td>
+      <td class="num hide">${p.idcount}</td>
+      <td class="num hide">${p.pvMedian.toLocaleString("cs-CZ")}</td>
+      <td class="score"><div class="scorerow"><span class="scoreval">${p.composite}</span>
+        <span class="mix" title="globální ${Math.round(p.pG*100)}% · trvalá ${Math.round(p.pDur*100)}% · živá ${Math.round(p.pL*100)}%">
+          <span class="g" style="width:${gw}%"></span><span class="u" style="width:${uw}%"></span><span class="d" style="width:${dw}%"></span></span>${spikeFlag}</div></td>
+    </tr>`;
+  }).join("");
+}
+function esc(s){return (s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
+
+/* ---------- CSV ---------- */
+function exportCSV(){
+  const head=["poradi_celkove","poradi_v_oboru","jmeno","qid","kategorie","rok_narozeni","sitelinks","autoritni_id","tvrzeni","ctenost_median_mes","ctenost_spicka_mes","spike_index","pct_globalni","pct_trvala","pct_ziva","kompozit","popis","wikidata_url"];
+  const rowsCsv=DATA._ranked.map(p=>[p.rankAll,p.rankCat,p.name,p.qid,p.cat,p.birth??"",p.sitelinks,p.idcount,p.stcount,
+    p.pvMedian,p.pvPeak,p.spike.toFixed(2),p.pG.toFixed(3),p.pDur.toFixed(3),p.pL.toFixed(3),p.composite,p.desc,p.url]);
+  const csv=[head,...rowsCsv].map(r=>r.map(c=>{
+    const s=String(c??""); return /[",\n;]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;
+  }).join(",")).join("\n");
+  const blob=new Blob(["\uFEFF"+csv],{type:"text/csv;charset=utf-8"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
+  a.download="index-znamosti-"+DATA._ranked.length+".csv"; a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+/* ---------- progress UI ---------- */
+function setBusy(b){$("#run").disabled=b; $("#run").textContent=b?"Pracuju…":"Sestavit žebříček";}
+function showProg(){$("#prog").classList.add("show"); $("#prog").innerHTML=
+  '<div id="pmsg">—</div><div class="ptrack"><div class="pfill" id="pfill"></div></div>';}
+function hideProg(){$("#prog").classList.remove("show");}
+function pmsg(t,pct){const m=$("#pmsg"),f=$("#pfill"); if(m)m.textContent=t; if(f&&pct!=null)f.style.width=pct+"%";}
+function progErr(err){
+  $("#prog").classList.add("show");
+  const msg=String(err&&err.message||err);
+  $("#prog").innerHTML=`<div class="perr"><b>${esc(msg)}</b><br>
+    Když to padá opakovaně: zkus menší pool, nebo dej Wikidatům pár vteřin (občas přiškrtí nápor) a spusť znovu.</div>`;
+  setBusy(false);
+}
+</script>
+</body>
+</html>
