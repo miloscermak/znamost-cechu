@@ -41,6 +41,7 @@ Přesné vzorce, konstanty a rozhodnutí jsou v `PREDAVACI-PROTOKOL.md`.
 
 ## Nasazení
 
+- **Web online:** https://cesi200.inspiruj.se
 - **Repo:** https://github.com/miloscermak/znamost-cechu (veřejné).
 - **Hosting:** Netlify napojený na repo (publish = `public/`, viz `netlify.toml`). `git push`
   s novým `public/data.json` → automatický deploy. Web nevolá AI, klíč nikde — měření je oddělené.
