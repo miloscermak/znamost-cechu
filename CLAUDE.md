@@ -39,9 +39,19 @@ Přesné vzorce, konstanty a rozhodnutí jsou v `PREDAVACI-PROTOKOL.md`.
 - **OpenRouter:** jen hlavičky `Authorization` + `Content-Type` (minimalizace preflightu), `temperature:0`, `max_tokens:300` (reasoning modely jinak utnou odpověď). Slugy modelů se mění — jsou v editovatelném bloku `PANEL`; neplatný slug se projeví jako tečkované kolečko / přeškrtnutý model.
 - **Seed nesmí pocházet z LLM** (kruhové zkreslení) — kandidáti vždy z Wikidat/pageviews.
 
+## Nasazení
+
+- **Repo:** https://github.com/miloscermak/znamost-cechu (veřejné).
+- **Hosting:** Netlify napojený na repo (publish = `public/`, viz `netlify.toml`). `git push`
+  s novým `public/data.json` → automatický deploy. Web nevolá AI, klíč nikde — měření je oddělené.
+- **Přepočet dat:** `build-data.mjs` (klíč jen lokálně v `.openrouter-key`, gitignored). Viz README.
+
 ## Otevřené úkoly
 
-- Veřejné nasazení: klíč přes backend-proxy (ne v kódu), předpočítaná data, statické servírování kvůli náporu.
+- **Blocklist jmen pro web** — některá datově silná jména nemusí být vhodná pro publikaci
+  (např. Nikita Denise); přidat seznam QID k vynechání při exportu.
+- **Samostatné projekty pro propagaci workshopů/přednášek** — `wikifight` (zábava, zdarma) a
+  `llmfight` (placené → jen s rozpočtovým stropem do vyčerpání). Budou to vlastní weby/repo.
 - Mřížka model × osobnost (plná vizualizace) — odloženo.
 - Volitelně soudce-model místo auto-verifikace (přesnější u „klíčového díla").
 - Ruční doplnění online-native lidí (influenceři bez článku na Wikipedii).

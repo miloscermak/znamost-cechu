@@ -197,8 +197,16 @@ V seedu fungují takto:
 
 ## 10. Otevřené otázky / další kroky
 
-- **Veřejné nasazení:** OpenRouter klíč nesmí být v prohlížeči → backend-proxy. Data předpočítat a cachovat, servírovat staticky kvůli náporu. (Soukromí: nástroje pracují jen s veřejnými osobnostmi, žádný veřejný vstup jmen — to je výhoda oproti otevřeným klonům.)
-- **Pomluvy:** modely halucinují; u reálných jmenovaných lidí nezobrazovat poškozující/„trestněprávní" tvrzení. (Relevantní zejména pro budoucí veřejnou verzi a pro volnotextové „KNOWN FOR".)
+- **Veřejné nasazení — VYŘEŠENO.** Klíč se v prohlížeči nikdy neobjeví: web (`public/`) je čistě
+  statický a jen zobrazuje předpočítaná data; měření je oddělené (`build-data.mjs`, klíč lokálně
+  v gitignorovaném `.openrouter-key`). Hosting Netlify (publish = `public/`), repo
+  https://github.com/miloscermak/znamost-cechu. Statické servírování zvládne nápor. (Soukromí:
+  jen veřejné osobnosti, žádný veřejný vstup jmen — výhoda oproti otevřeným klonům.)
+- **Blocklist jmen pro web** — datově silná jména nevhodná k publikaci (např. Nikita Denise);
+  zavést seznam QID k vynechání při exportu z `build-data.mjs`.
+- **Samostatné projekty pro propagaci** workshopů/přednášek: `wikifight` (zábava, zdarma) a
+  `llmfight` (placené → jen s rozpočtovým stropem do vyčerpání). Vlastní weby/repo.
+- **Pomluvy:** modely halucinují; u reálných jmenovaných lidí nezobrazovat poškozující/„trestněprávní" tvrzení. (Web zatím nezobrazuje volnotextové „KNOWN FOR", jen rozpoznání 0/1/2 — riziko nízké.)
 - **Mřížka model × osobnost** (plná vizualizace) — odloženo.
 - **Soudce-model** místo auto-verifikace — přesnější u „klíčového díla", umožní vrátit škálu 0–3; o jeden levný model navíc na osobu.
 - **Ruční doplnění** online-native lidí (influenceři bez/ s tenkým článkem na Wikipedii).
